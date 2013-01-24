@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <title></title>
   <!--<script type="text/javascript" src="MIDI.Player.js"></script>-->
-  <script type="text/javascript" src="MIDI.Converter.js"></script>
-  <script type="text/javascript" src="MIDI.Decoder.js"></script>
-  <script type="text/javascript" src="MIDI.Stream.js"></script>
+  <script type="text/javascript" src="src/jMID.Converter.js"></script>
+  <script type="text/javascript" src="src/jMID.Decoder.js"></script>
+  <script type="text/javascript" src="src/jMID.Stream.js"></script>
   <!--<script type="text/javascript" src="midifile.js"></script>
   <script type="text/javascript" src="stream 2.js"></script>-->
 </head>
@@ -21,9 +21,9 @@
       console.log(files);
 
       reader.onload = function(e) {
-        var stream = new MIDI.Stream(e.target.result);
-        var decoded = new MIDI.Decoder(stream);
-        window.player = new MIDI.Player(decoded);
+        var stream = new jMID.Stream(e.target.result);
+        var decoded = new jMID.Decoder(stream);
+        window.player = new jMID.Player(decoded);
         // buffer2 = MidiFile(e.target.result);
       };
 

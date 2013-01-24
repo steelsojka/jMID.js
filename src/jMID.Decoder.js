@@ -20,7 +20,7 @@ var jMID = (function(jMID) {
     var event = {};
     event.time = stream.readVarInt();
     var eventByte = stream.readInt8();
-    var types = jMID.EventTypes;
+    var types = jMID.Decoder.EventTypes;
 
     if ((eventByte & 0xf0) == 0xf0) {
       switch (eventByte) {
@@ -37,19 +37,18 @@ var jMID = (function(jMID) {
   };
 
   var _parseSysexEvent = function(event, stream) {
-    event.type = jMID.EventTypes.SYSEX;
+    event.type = jMID.Decoder.EventTypes.SYSEX;
     var length = stream.readVarInt();
     event.data = stream.read(length);
     return event;
   };
 
   var _parseMetaEvent = function(event, stream) {
-    event.type = jMID.EventTypes.META;
+    event.type = jMID.Decoder.EventTypes.META;
 
     var subType = stream.readInt8();
     var length  = stream.readVarInt();
-    var types   = jMID.SubEventTypes;
-    var fRates  = jMID.FrameRates;
+    var types   = jMID.Decoder.SubEventTypes;
 
     for (var key in types) {
       var type = types[key];
@@ -117,7 +116,7 @@ var jMID = (function(jMID) {
   };
 
   var _parseDividedSysexEvent = function() {
-    event.type = jMID.EventTypes.DIVIDED_SYSEX;
+    event.type = jMID.Decoder.EventTypes.DIVIDED_SYSEX;
     var length = stream.readVarInt();
     event.data = stream.read(length);
     return event;
@@ -125,7 +124,7 @@ var jMID = (function(jMID) {
 
   var _parseChannelEvent = function(eventByte, event, stream) {
     var param1;
-    var types = jMID.SubEventTypes;
+    var types = jMID.Decoder.SubEventTypes;
 
     if ((eventByte & 0x80) == 0) {
       param1 = eventByte;
@@ -232,13 +231,13 @@ var jMID = (function(jMID) {
   /////////////////// Static variables //////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  jMID.EventTypes = {
+  jMID.Decoder.EventTypes = {
     META          : 0xff,
     SYSEX         : 0xf0,
     DIVIDED_SYSEX : 0xf7
   };
 
-  jMID.SubEventTypes = {
+  jMID.Decoder.SubEventTypes = {
     SEQUENCE_NUMBER     : 0x00,
     TEXT                : 0x01,
     COPYRIGHT_NOTICE    : 0x02,

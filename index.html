@@ -22,8 +22,8 @@
 
       reader.onload = function(e) {
         var stream = new jMID.Stream(e.target.result);
-        var decoded = new jMID.Decoder(stream);
-        window.player = new jMID.Player(decoded);
+        window.decoded = new jMID.Decoder(stream);
+        // window.player = new jMID.Player(decoded);
         // buffer2 = MidiFile(e.target.result);
       };
 

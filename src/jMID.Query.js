@@ -21,14 +21,15 @@ var jMID = (function(jMID) {
   };
 
   var _remove = function() {
+    var temp = this.slice(0);
     var what, a = arguments, L = a.length, ax;
-    while (L && this.length) {
+    while (L && temp.length) {
       what = a[--L];
-      while ((ax = this.indexOf(what)) !== -1) {
-          this.splice(ax, 1);
+      while ((ax = temp.indexOf(what)) !== -1) {
+          temp.splice(ax, 1);
       }
     }
-    return this;
+    return temp;
   };
 
   var _search = function(query) {
@@ -85,14 +86,23 @@ var jMID = (function(jMID) {
       var results = _search.call(this, query);
       return new jMIDQueryResult(this._decoder, results);
     },
-    remove : function(query) {
+    not : function(query) {
       var results = query ? _search.call(this, query) : this._results;
+      var newResults = [];
 
       for (var i = 0, _len = results.tracks.length; i < _len; i++) {
         var track = results.tracks[i];
-        _remove.apply(this._decoder.tracks[i], track);
+        newResults.push(_remove.apply(this._results.tracks[i], track));
       }
 
+      return new jMIDQueryResult(this._decoder, {tracks : newResults});
+    },
+    apply : function() {
+      for (var i = 0, _len = this._results.tracks.length; i < _len; i++) {
+        var track = this._results.tracks[i];
+        this._decoder.tracks[i] = track.slice(0);
+      }
+      
       return new jMIDQueryResult(this._decoder);
     }
   };

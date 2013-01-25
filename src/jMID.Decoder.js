@@ -17,8 +17,8 @@ var jMID = (function(jMID) {
   //////////////////////////////////////////////////////////////////
 
   var _readEvent = function(stream) {
-    var event = {};
-    event.time = stream.readVarInt();
+    var event = new jMID.Event();
+    event.set('time', stream.readVarInt());
     var eventByte = stream.readInt8();
     var types = jMID.Decoder.EventTypes;
 
@@ -37,14 +37,14 @@ var jMID = (function(jMID) {
   };
 
   var _parseSysexEvent = function(event, stream) {
-    event.type = jMID.Decoder.EventTypes.SYSEX;
+    event.set('type', jMID.Decoder.EventTypes.SYSEX);
     var length = stream.readVarInt();
-    event.data = stream.read(length);
+    event.set('data', stream.read(length));
     return event;
   };
 
   var _parseMetaEvent = function(event, stream) {
-    event.type = jMID.Decoder.EventTypes.META;
+    event.set('type', jMID.Decoder.EventTypes.META);
 
     var subType = stream.readInt8();
     var length  = stream.readVarInt();
@@ -54,41 +54,48 @@ var jMID = (function(jMID) {
       var type = types[key];
 
       if (subType == type) {
-        event.subtype = type;
+        event.set('subtype', type);
 
         switch (type) {
           case types.SEQUENCE_NUMBER: 
-            event.number = stream.readInt16(); break;
+            event.set('number', stream.readInt16()); break;
 
           case types.jMID_CHANNEL_PREFIX:
-            event.channel = stream.readInt8(); break;
+            event.set('channel', stream.readInt8()); break;
           
           case types.SET_TEMPO:
-            event.microsecondsPreBeat = (stream.readInt8() << 16) +
+            event.set('microsecondsPreBeat', (stream.readInt8() << 16) +
                                         (stream.readInt8() << 8) +
-                                        (stream.readInt8());
+                                        (stream.readInt8()));
             break;
           
           case types.SMPTE_OFFSET:
             var hour        = stream.readInt8();
-            event.frameRate = {0x00: 24, 0x20: 25, 0x40: 29, 0x60: 30}[hourByte & 0x60];
-            event.hour      = hour & 0x1f;
-            event.min       = stream.readInt8();
-            event.sec       = stream.readInt8();
-            event.frame     = stream.readInt8();
-            event.subframe  = stream.readInt8();
+            event.set({
+              frameRate : {0x00: 24, 0x20: 25, 0x40: 29, 0x60: 30}[hourByte & 0x60],
+              hour      : hour & 0x1f,
+              min       : stream.readInt8(),
+              sec       : stream.readInt8(),
+              frame     : stream.readInt8(),
+              subframe  : stream.readInt8()
+            });
+
             break;
           
           case types.TIME_SIGNATURE:
-            event.numerator     = stream.readInt8();
-            event.denominator   = Math.pow(2, stream.readInt8());
-            event.metronome     = stream.readInt8();
-            event.thirtyseconds = stream.readInt8();
+            event.set({
+              numerator     : stream.readInt8(),
+              denominator   : Math.pow(2, stream.readInt8()),
+              metronome     : stream.readInt8(),
+              thirtyseconds : stream.readInt8()
+            });
             break;
 
           case types.KEY_SIGNATURE:
-            event.key = stream.readInt8(true);
-            event.scale = stream.readInt8();
+            event.set({
+              key : stream.readInt8(true),
+              scale : stream.readInt8()
+            });
             break;
 
           case types.TEXT:
@@ -98,7 +105,7 @@ var jMID = (function(jMID) {
           case types.LYRICS:
           case types.MARKER:
           case types.CUE_POINT:
-            event.text = stream.read(length);
+            event.set('text', stream.read(length));
             break;
 
           case types.END_OF_TRACK:
@@ -106,7 +113,7 @@ var jMID = (function(jMID) {
 
           case types.SEQUENCER_SPECIFIC:
           default:
-            event.data = stream.read(length);
+            event.set('data', stream.read(length));
         }
         break;
       }
@@ -116,9 +123,9 @@ var jMID = (function(jMID) {
   };
 
   var _parseDividedSysexEvent = function() {
-    event.type = jMID.Decoder.EventTypes.DIVIDED_SYSEX;
+    event.set('type', jMID.Decoder.EventTypes.DIVIDED_SYSEX);
     var length = stream.readVarInt();
-    event.data = stream.read(length);
+    event.set('data', stream.read(length));
     return event;
   };
 
@@ -135,43 +142,43 @@ var jMID = (function(jMID) {
     }
 
     var eventType = eventByte >> 4;
-    event.channel = eventByte & 0x0f;
-    event.type = "channel";
+    event.set('channel', eventByte & 0x0f);
+    event.set('type', "channel");
 
     for (var key in types) {
       var type = types[key];
 
       if (eventType == type) {
-        event.subtype = type;
+        event.set('subtype', type);
 
         switch (type) {
           case types.NOTE_OFF:
-            event.noteNumber = param1;
-            event.velocity = stream.readInt8();
+            event.set('noteNumber', param1);
+            event.set('velocity',  stream.readInt8());
             break;
           case types.NOTE_ON:
-            event.noteNumber = param1;
-            event.velocity = stream.readInt8();
-            if (event.velocity == 0) {
-              event.subtype = types.NOTE_OFF;
+            event.set('noteNumber', param1);
+            event.set('velocity', stream.readInt8());
+            if (event.get('velocity') == 0) {
+              event.set('subtype', types.NOTE_OFF);
             }
             break;
           case types.NOTE_AFTER_TOUCH:
-            event.noteNumber = param1;
-            event.amount = stream.readInt8();
+            event.set('noteNumber', param1);
+            event.set('amount', stream.readInt8());
             break;
           case types.CONTROLLER:
-            event.controllerType = param1;
-            event.value = stream.readInt8();
+            event.set('controllerType', param1);
+            event.set('value', stream.readInt8());
             break;
           case types.PROGRAM_CHANGE:
-            event.programNumber = param1;
+            event.set('programNumber', param1);
             break;
           case types.CHANNEL_AFTER_TOUCH:
-            event.amount = param1;
+            event.set('amount', param1);
             break;
           case types.PITCH_BEND:
-            event.value = param1 + (stream.readInt8() << 7);
+            event.set('value', param1 + (stream.readInt8() << 7));
             break;
         }
 

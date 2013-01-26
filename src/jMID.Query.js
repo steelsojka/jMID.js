@@ -36,17 +36,18 @@ var jMID = (function(jMID) {
     var queries = _parseQuery(query);
     var tracks = [];
     
-    for (var i = 0, _len = queries.length; i < _len; i++) {
-      var conditions = queries[i];
 
-      for (var y = 0, _len3 = this._results.tracks.length; y < _len3; y++) {
-       var track = this._results.tracks[y];
-       tracks.push(new Array());
-       
-        for (var z = 0, _len4 = track.length; z < _len4; z++) {
-          var event = track[z];
-          var isValid = false;
+    for (var y = 0, _len3 = this._results.tracks.length; y < _len3; y++) {
+     var track = this._results.tracks[y];
+     tracks.push(new Array());
      
+      for (var z = 0, _len4 = track.length; z < _len4; z++) {
+        var event = track[z];
+        var isValid = false;
+        
+        for (var i = 0, _len = queries.length; i < _len; i++) {
+          var conditions = queries[i];
+
           for (var x = 0, _len2 = conditions.length; x < _len2; x++) {
             var operator = _getOperator(conditions[x]);
             var condition = conditions[x].split(operator);
@@ -65,7 +66,7 @@ var jMID = (function(jMID) {
           }
           if (isValid) {
             tracks[y].push(event);
-          }
+          } 
         }
       }
     }
@@ -78,13 +79,13 @@ var jMID = (function(jMID) {
   var jMIDQueryResult = function(decodedMidi, results) {
 
     this._results = results ? results : {tracks : decodedMidi.tracks.slice(0)};
-    this._decoder = decodedMidi;
+    this._file = decodedMidi;
   };
 
   jMIDQueryResult.prototype = {
     filter : function(query) {
       var results = _search.call(this, query);
-      return new jMIDQueryResult(this._decoder, results);
+      return new jMIDQueryResult(this._file, results);
     },
     not : function(query) {
       var results = query ? _search.call(this, query) : this._results;
@@ -95,25 +96,25 @@ var jMID = (function(jMID) {
         newResults.push(_remove.apply(this._results.tracks[i], track));
       }
 
-      return new jMIDQueryResult(this._decoder, {tracks : newResults});
+      return new jMIDQueryResult(this._file, {tracks : newResults});
     },
     apply : function() {
       for (var i = 0, _len = this._results.tracks.length; i < _len; i++) {
         var track = this._results.tracks[i];
-        this._decoder.tracks[i] = track.slice(0);
+        this._file.tracks[i] = track.slice(0);
       }
-      
-      return new jMIDQueryResult(this._decoder);
+
+      return new jMIDQueryResult(this._file);
     }
   };
 
-  jMID.Query = function(decodedMidi) {
-    if (!decodedMidi) {
-      throw new Error("Midi is needed for querying");
+  jMID.Query = function(midiFile) {
+    if (!midiFile) {
+      throw new Error("jMID.File is needed for querying");
       return;
     }
 
-    return new jMIDQueryResult(decodedMidi);
+    return new jMIDQueryResult(midiFile);
   };
 
   return jMID;

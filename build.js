@@ -5,6 +5,7 @@ var CLOSURE_PATH = "build/compiler.jar";
 var jsFiles = ["jMID.Util.js",
                "jMID.Event.js",
                "jMID.Stream.js",
+               "jMID.File.js",
                "jMID.Decoder.js",
                "jMID.Query.js",
                "jMID.Converter.js"];

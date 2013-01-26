@@ -9,7 +9,9 @@ var jMID = (function(jMID) {
 	};
 
 	jMID.File.prototype = {
-
+		getHeader : function() {
+			return this.header;
+		}
 	};
 
 	return jMID;

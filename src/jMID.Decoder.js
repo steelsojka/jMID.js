@@ -20,7 +20,7 @@ var jMID = (function(jMID) {
     var event = new jMID.Event();
     event.set('time', stream.readVarInt());
     var eventByte = stream.readInt8();
-    var types = jMID.Decoder.EventTypes;
+    var types = jMID.EventTypes;
 
     if ((eventByte & 0xf0) == 0xf0) {
       switch (eventByte) {
@@ -48,7 +48,7 @@ var jMID = (function(jMID) {
 
     var subType = stream.readInt8();
     var length  = stream.readVarInt();
-    var types   = jMID.Decoder.SubEventTypes;
+    var types   = jMID.SubEventTypes;
 
     for (var key in types) {
       var type = types[key];
@@ -140,7 +140,7 @@ var jMID = (function(jMID) {
 
   var _parseChannelEvent = function(eventByte, event, stream) {
     var param1;
-    var types = jMID.Decoder.SubEventTypes;
+    var types = jMID.SubEventTypes;
 
     if ((eventByte & 0x80) == 0) {
       param1 = eventByte;
@@ -256,13 +256,13 @@ var jMID = (function(jMID) {
   /////////////////// Static variables //////////////////////////
   ///////////////////////////////////////////////////////////////
 
-  jMID.Decoder.EventTypes = {
+  jMID.EventTypes = {
     META          : 0xff,
     SYSEX         : 0xf0,
     DIVIDED_SYSEX : 0xf7
   };
 
-  jMID.Decoder.SubEventTypes = {
+  jMID.SubEventTypes = {
     SEQUENCE_NUMBER     : 0x00,
     TEXT                : 0x01,
     COPYRIGHT_NOTICE    : 0x02,

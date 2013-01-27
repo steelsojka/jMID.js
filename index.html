@@ -9,6 +9,7 @@
   <script type="text/javascript" src="src/jMID.Query.js"></script>
   <script type="text/javascript" src="src/jMID.Converter.js"></script>
   <script type="text/javascript" src="src/jMID.Decoder.js"></script>
+  <script type="text/javascript" src="src/jMID.Encoder.js"></script>
   <script type="text/javascript" src="src/jMID.File.js"></script>
   <script type="text/javascript" src="src/jMID.Stream.js"></script>
   <!--<script type="text/javascript" src="midifile.js"></script>
@@ -25,8 +26,8 @@
       console.log(files);
 
       reader.onload = function(e) {
-        var stream = new jMID.Stream(e.target.result);
-        var decoder = new jMID.Decoder();
+        window.stream = new jMID.Stream(e.target.result);
+        window.decoder = new jMID.Decoder();
         window.file = decoder.decode(stream);
         // window.player = new jMID.Player(decoded);
         // buffer2 = MidiFile(e.target.result);

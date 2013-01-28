@@ -18,102 +18,11 @@ var jMID = (function() {
 
     string += HEADER_CHUNKID + HEADER_CHUNK_SIZE + HEADER_TYPE0;
     string += util.bytesToString(util.stringToBytes(header.trackCount.toString(), 2));
-    string += HEADER_SPEED;
+    string += util.bytesToString([header.ticksPerBeat >> 8, header.ticksPerBeat & 0xff00 >> 8]);
 
     return string;
   };
 
-  var _getType = function(type) {
-    var types = jMID.SubEventTypes;
-
-    switch (type) {
-      case "sequenceNumber"    :  return types.SEQUENCER_NUMBER;
-      case "text"              :  return types.TEXT;
-      case "copyrightNotice"   :  return types.COPYRIGHT_NOTICE;
-      case "trackName"         :  return types.TRACK_NAME;
-      case "instrumentName"    :  return types.INSTRUMENT_NAME;
-      case "lyrics"            :  return types.LYRICS;
-      case "marker"            :  return types.MARKER;
-      case "cuePoint"          :  return types.CUE_POINT;
-      case "midiChannelPrefix" :  return types.MIDI_CHANNEL_PREFIX;
-      case "endOfTrack"        :  return types.END_OF_TRACK;
-      case "setTempo"          :  return types.SET_TEMPO;
-      case "smpteOffset"       :  return types.SMPTE_OFFSET;
-      case "timeSignature"     :  return types.TIME_SIGNATURE;
-      case "sequencerSpecific" :  return types.SEQUENCER_SPECIFIC;
-      case "noteOff"           :  return types.NOTE_OFF;
-      case "noteOn"            :  return types.NOTE_ON;
-      case "noteAfterTouch"    :  return types.NOTE_AFTER_TOUCH;
-      case "controller"        :  return types.CONTROLLER;
-      case "programChange"     :  return types.PROGRAM_CHANGE;
-      case "channelAfterTouch" :  return types.CHANNEL_AFTER_TOUCH;
-      case "pitchBend"         :  return types.PITCH_BEND;
-    }
-  };
-
-  var _encodeChannelEvent = function(event) {
-    var byteArray = [];
-
-    var typeByte = _getType(event.subtype);
-    var typeChannelByte = parseInt(typeByte.toString(16) + event.channel.toString(16), 16);
-
-    byteArray.push(event.time);
-    byteArray.push(typeChannelByte);
-
-    switch (event.subtype) {
-      case 'noteOn':
-      case 'noteOff':
-        byteArray.push(event.noteNumber, event.velocity); break;
-      case 'noteAfterTouch':
-        byteArray.push(event.noteNumber, event.amount); break;
-      case 'controller':
-        byteArray.push(event.controllerType); break;
-      case 'programChange':
-        byteArry.push(event.programNumber); break;
-      case 'channelAfterTouch':
-        byteArray.push(event.amount); break;
-      case 'pitchBend':
-        byteArray.push(event.value); break;
-    }
-    
-    return byteArray;
-  };
-
-  var _encodeEvent = function(event, string) {
-    var byteArray = [];
-
-    if (event.type === "meta") {
-      return [];
-      // byteArray = [0xff, _getType(event.subtype)];
-
-      // if (jMID.Util.isArray(this.data)) {
-      //   AP.push.apply(byteArray, this.data);
-      // }
-
-    } else {
-      return _encodeChannelEvent(event);
-    }
-  };
-
-  var _encodeTrack = function(track, string) {
-    var startByte   = [0x4d, 0x54, 0x72, 0x6b];
-    var endByte     = [0x0, 0xFF, 0x2F, 0x0];
-    var eventBytes  = [];
-    var trackLength = 0;
-
-    for (var i = 0, _len = track.length; i < _len; i++) {
-      var event = track[i];
-      var bytes = _encodeEvent(event);
-      trackLength += bytes.length;
-      Array.prototype.push.apply(eventBytes, bytes);
-    }
-
-    trackLength += endByte.length;
-
-    var lengthBytes = jMID.Util.stringToBytes(trackLength.toString(16), 4);
-
-    return startByte.concat(lengthBytes, eventBytes, endByte);
-  };
 
   jMID.Encoder = function() {};
 
@@ -124,7 +33,8 @@ var jMID = (function() {
       encoded = _encodeHeader(file.getHeader(), encoded);
 
       for (var i = 0, _len = file.tracks.length; i < _len; i++) {
-        encoded += jMID.Util.bytesToString(_encodeTrack(file.tracks[i], encoded));
+        var data = file.tracks[i].encode();
+        encoded += data;
       }
 
       return encoded;

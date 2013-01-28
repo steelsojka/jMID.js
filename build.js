@@ -3,9 +3,12 @@ var exec = require('child_process').exec;
 
 var CLOSURE_PATH = "build/compiler.jar";
 var jsFiles = ["jMID.Util.js",
+               "jMID.Core.js",
                "jMID.Event.js",
+               "jMID.Track.js",
                "jMID.Stream.js",
                "jMID.File.js",
+               "jMID.Encoder.js",
                "jMID.Decoder.js",
                "jMID.Query.js",
                "jMID.Converter.js"];

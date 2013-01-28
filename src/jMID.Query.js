@@ -26,7 +26,7 @@ var jMID = (function(jMID) {
     while (L && temp.length) {
       what = a[--L];
       while ((ax = temp.indexOf(what)) !== -1) {
-          temp.splice(ax, 1);
+        temp.splice(ax, 1);
       }
     }
     return temp;
@@ -39,10 +39,10 @@ var jMID = (function(jMID) {
 
     for (var y = 0, _len3 = this._results.tracks.length; y < _len3; y++) {
      var track = this._results.tracks[y];
-     tracks.push(new Array());
+     tracks.push(new jMID.Track());
      
-      for (var z = 0, _len4 = track.length; z < _len4; z++) {
-        var event = track[z];
+      for (var z = 0, _len4 = track.getEvents().length; z < _len4; z++) {
+        var event = track.getEvents(z);
         var isValid = false;
         
         for (var i = 0, _len = queries.length; i < _len; i++) {
@@ -65,7 +65,7 @@ var jMID = (function(jMID) {
             if (!isValid) break;;
           }
           if (isValid) {
-            tracks[y].push(event);
+            tracks[y].pushEvent(event);
           } 
         }
       }
@@ -93,7 +93,9 @@ var jMID = (function(jMID) {
 
       for (var i = 0, _len = results.tracks.length; i < _len; i++) {
         var track = results.tracks[i];
-        newResults.push(_remove.apply(this._results.tracks[i], track));
+        var newTrack = new jMID.Track(track.cloneEvents());
+        newTrack.removeEvents.apply(newTrack, this._results.tracks[i].getEvents());
+        newResults.push(newTrack);
       }
 
       return new jMIDQueryResult(this._file, {tracks : newResults});
@@ -101,7 +103,7 @@ var jMID = (function(jMID) {
     apply : function() {
       for (var i = 0, _len = this._results.tracks.length; i < _len; i++) {
         var track = this._results.tracks[i];
-        this._file.tracks[i] = track.slice(0);
+        this._file.tracks[i] = new jMID.Track(track.cloneEvents());
       }
 
       return new jMIDQueryResult(this._file);

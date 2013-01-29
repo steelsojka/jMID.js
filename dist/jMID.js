@@ -160,7 +160,7 @@ var jMID = (function(jMID) {
     var typeByte = jMID.Util.getType(event.subtype);
     var typeChannelByte = parseInt(typeByte.toString(16) + event.channel.toString(16), 16);
 
-    Array.prototype.push.apply(byteArray, jMID.Util.writeVarInt(event.time));
+    Array.prototype.push.apply(byteArray, jMID.Util.writeVarInt(event.deltaTime));
     byteArray.push(typeChannelByte);
 
     switch (event.subtype) {
@@ -183,8 +183,10 @@ var jMID = (function(jMID) {
   };
 
   var _encodeMetaEvent = function(event) {
-    var byteArray = [event.time, 0xff, jMID.Util.getType(event.subtype)];
-
+    var byteArray = [];
+    Array.prototype.push.apply(byteArray, jMID.Util.writeVarInt(event.deltaTime));
+    byteArray.push(0xff, jMID.Util.getType(event.subtype));
+    
     switch (event.subtype) {
       case 'sequenceNumber': byteArray.push(1, event.number); break;
       case 'midiChannelPrefix': byteArray.push(1, event.channel); break;
@@ -381,21 +383,27 @@ var jMID = (function(jMID) {
 
 }(jMID || {}));var jMID = (function(jMID) {
 
-	jMID.File = function(decoded) {
-		for (var key in decoded) {
-			if (decoded.hasOwnProperty(key)) {
-				this[key] = decoded[key];
-			}
-		}
-	};
+  jMID.File = function(decoded) {
+    for (var key in decoded) {
+      if (decoded.hasOwnProperty(key)) {
+        this[key] = decoded[key];
+      }
+    }
+  };
 
-	jMID.File.prototype = {
-		getHeader : function() {
-			return this.header;
-		}
-	};
+  jMID.File.prototype = {
+    getHeader : function() {
+      return this.header;
+    },
+    encode : function() {
+      return new jMID.Encoder().encode(this);
+    },
+    base64Encode : function() {
+      return btoa(this.encode());
+    }
+  };
 
-	return jMID;
+  return jMID;
 
 }(jMID || {}));var jMID = (function() {
 
@@ -415,7 +423,8 @@ var jMID = (function(jMID) {
   var _encodeHeader = function(header, string) {
     var util = jMID.Util;
 
-    string += HEADER_CHUNKID + HEADER_CHUNK_SIZE + HEADER_TYPE0;
+    string += HEADER_CHUNKID + HEADER_CHUNK_SIZE;
+    string += header.format === 0 ? HEADER_TYPE0 : HEADER_TYPE1;
     string += util.bytesToString(util.stringToBytes(header.trackCount.toString(), 2));
     string += util.bytesToString([header.ticksPerBeat >> 8, header.ticksPerBeat & 0xff00 >> 8]);
 
@@ -482,7 +491,7 @@ var jMID = (function(jMID) {
 
   var _readEvent = function(stream) {
     var event = new jMID.Event();
-    event.set('time', stream.readVarInt());
+    event.set('deltaTime', stream.readVarInt());
     var eventByte = stream.readInt8();
     var types = jMID.EventTypes;
 

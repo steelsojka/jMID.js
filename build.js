@@ -36,15 +36,23 @@ var concat = function(files, output, callback) {
   exec("cat " + _files.join(" ") + " > " + output, callback);
 };
 
+var singleFileCallback = function(i) {
+  if (!i) return;
+
+  minify("src/" + jsFiles[i], "dist/" + jsFiles[i].replace(".js", ".min.js"), function() {
+    singleFileCallback(--i);
+  });  
+};
+
 clean(function() {
   
   concat(jsFiles, "dist/jMID.js", function() {
-    minify("dist/jMID.js", "dist/jMID.min.js");
+    minify("dist/jMID.js", "dist/jMID.min.js", function() {
+      var i = jsFiles.length - 1;
+      singleFileCallback(i);
+    });
   });
 
-  for (var i = jsFiles.length - 1; i >= 0; i--) {
-    minify("src/" + jsFiles[i], "dist/" + jsFiles[i].replace(".js", ".min.js"));
-  }
 
 });
 

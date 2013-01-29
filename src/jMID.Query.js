@@ -88,17 +88,27 @@ var jMID = (function(jMID) {
       return new jMIDQueryResult(this._file, results);
     },
     not : function(query) {
-      var results = query ? _search.call(this, query) : this._results;
+      var resultsToRemove = _search.call(this, query);
+      var results = this._results;
       var newResults = [];
 
       for (var i = 0, _len = results.tracks.length; i < _len; i++) {
         var track = results.tracks[i];
         var newTrack = new jMID.Track(track.cloneEvents());
-        newTrack.removeEvents.apply(newTrack, this._results.tracks[i].getEvents());
+        newTrack.removeEvents.apply(newTrack, resultsToRemove.tracks[i].getEvents());
         newResults.push(newTrack);
       }
 
       return new jMIDQueryResult(this._file, {tracks : newResults});
+    },
+    toArray: function() {
+      var events = [];
+
+      for (var i = 0, _len = this._results.tracks.length; i < _len; i++) {
+        var list = this._results.tracks[i];
+        events = events.concat(list.events);
+      }
+      return events;
     },
     apply : function() {
       for (var i = 0, _len = this._results.tracks.length; i < _len; i++) {

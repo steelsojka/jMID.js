@@ -25,12 +25,11 @@
       var files = e.target.files;
       var reader = new FileReader();
 
-      console.log(files);
-
       reader.onload = function(e) {
         window.stream = new jMID.Stream(e.target.result);
         window.decoder = new jMID.Decoder();
         window.file = decoder.decode(stream);
+        // draw(file);
         // window.player = new jMID.Player(decoded);
         // buffer2 = MidiFile(e.target.result);
       };
@@ -39,7 +38,30 @@
 
     };
 
+    window.draw = function(file) {
+      var canvas = document.getElementById("canvas");
+      var ctx = canvas.getContext('2d');
+      var height = canvas.height;
+      ctx.fillStyle = "#FF0000";
+
+      for (var i = 0, _len = file.tracks.length; i < _len; i++) {
+        var track = file.tracks[i];
+        var start = 0;
+        for (var x = 0, _len2 = track.events.length; x < _len2; x++) {
+          var event = track.events[x];
+
+          if (event.subtype === "noteOn") {
+            start = event.time;
+          } else if (event.subtype === "noteOff") {
+            document.createElement('div');
+          }
+
+        }
+      }
+    };
+
     document.querySelector("input").addEventListener('change', handleChange, false);
   </script>
+  <canvas id="canvas" height="127" width="300" style="width:100%;height:300px"></canvas>
 </body>
 </html>

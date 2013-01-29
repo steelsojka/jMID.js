@@ -16,7 +16,8 @@ var jMID = (function() {
   var _encodeHeader = function(header, string) {
     var util = jMID.Util;
 
-    string += HEADER_CHUNKID + HEADER_CHUNK_SIZE + HEADER_TYPE0;
+    string += HEADER_CHUNKID + HEADER_CHUNK_SIZE;
+    string += header.format === 0 ? HEADER_TYPE0 : HEADER_TYPE1;
     string += util.bytesToString(util.stringToBytes(header.trackCount.toString(), 2));
     string += util.bytesToString([header.ticksPerBeat >> 8, header.ticksPerBeat & 0xff00 >> 8]);
 

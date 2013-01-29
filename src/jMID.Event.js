@@ -7,7 +7,7 @@ var jMID = (function(jMID) {
     var typeByte = jMID.Util.getType(event.subtype);
     var typeChannelByte = parseInt(typeByte.toString(16) + event.channel.toString(16), 16);
 
-    Array.prototype.push.apply(byteArray, jMID.Util.writeVarInt(event.time));
+    Array.prototype.push.apply(byteArray, jMID.Util.writeVarInt(event.deltaTime));
     byteArray.push(typeChannelByte);
 
     switch (event.subtype) {
@@ -30,8 +30,10 @@ var jMID = (function(jMID) {
   };
 
   var _encodeMetaEvent = function(event) {
-    var byteArray = [event.time, 0xff, jMID.Util.getType(event.subtype)];
-
+    var byteArray = [];
+    Array.prototype.push.apply(byteArray, jMID.Util.writeVarInt(event.deltaTime));
+    byteArray.push(0xff, jMID.Util.getType(event.subtype));
+    
     switch (event.subtype) {
       case 'sequenceNumber': byteArray.push(1, event.number); break;
       case 'midiChannelPrefix': byteArray.push(1, event.channel); break;

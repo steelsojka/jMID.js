@@ -18,7 +18,7 @@ var jMID = (function(jMID) {
 
   var _readEvent = function(stream) {
     var event = new jMID.Event();
-    event.set('time', stream.readVarInt());
+    event.set('deltaTime', stream.readVarInt());
     var eventByte = stream.readInt8();
     var types = jMID.EventTypes;
 

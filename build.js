@@ -60,7 +60,7 @@ var stripLogs = function(data) {
 };
 
 var singleFileCallback = function(i) {
-  if (!i) return;
+  if (i < 0) return;
   var minFile = jsFiles[i].replace(".js", ".min.js");
 
   minify("src/" + jsFiles[i], "dist/" + minFile, function() {

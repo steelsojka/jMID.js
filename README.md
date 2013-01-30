@@ -1,0 +1,74 @@
+jMID.js
+=========
+
+A javascript library for reading, manipulating, and writing MIDI files.
+
+Setup
+------
+
+jMID is setup into modules.  You either include all the modules with jMID.min.js or you can load modules seperately if you want to load them asyncronously.
+Most of the modules have dependencies on other modules so You are probably better off including all modules.
+
+```html
+<script src="jMID.min.js"></script>
+
+<!-- OR -->
+
+<script src="jMID.Core.min.js" async></script>
+<script src="jMID.Query.min.js" async></script>
+<script src="jMID.Stream.min.js" async></script>
+<script src="jMID.File.min.js" async></script>
+<!-- etc... -->
+```
+
+Using
+======
+
+Decoding
+--------
+
+You can decoded a MIDI file by passing in the binary data to the Decoder.
+
+```javascript
+// Get the file contents through the File API or other means...
+
+var decoder = new jMID.Decoder();
+
+var midiFile = decoder.decode(myMidiFile); // Returns a jMID.File object
+```
+
+Queries
+------
+
+Queries can be performed on the various MIDI data, similiar to jQuery.
+Pass your jMID.File object to the jMID.Query module.
+
+```javascript
+jMID.Query(midiFile).filter("noteNumber:61"); // Return all events with note number 61
+
+// You can also short type the query call
+
+var jm$ = jMID.Query;
+
+jm$(midiFile).filter("velocity>45").not("type:meta"); // All notes with a velocity greater than 45 and not of type meta
+
+// You can even increment values
+
+jMID.Query(midiFile).filter("noteNumber>10").increment("velocity", 25); // Raise velocity 25 of note numbers higher than 10
+```
+
+Encoding
+--------
+
+You can encode your MIDI file after being manipulated by calling the 'encode' method or the 'base64Encode' method.
+
+```javascript
+midiFile.encode(); // Returns a binary string or the midi data
+
+midiFile.base64Encode(); // Return a base64 encoded string of the binary data
+```
+
+License
+=========
+
+MIT Licensed

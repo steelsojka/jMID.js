@@ -1,9 +1,9 @@
 var fs = require('fs');
 var exec = require('child_process').exec;
-
+var version = 0.1;
 var CLOSURE_PATH = "build/compiler.jar";
-var jsFiles = ["jMID.Util.js",
-               "jMID.Core.js",
+var jsFiles = ["jMID.Core.js",
+               "jMID.Util.js",
                "jMID.Event.js",
                "jMID.Track.js",
                "jMID.Stream.js",
@@ -12,6 +12,16 @@ var jsFiles = ["jMID.Util.js",
                "jMID.Decoder.js",
                "jMID.Query.js",
                "jMID.Converter.js"];
+
+var header = ["/**", 
+              " * @FILE_NAME@ v" + version,
+              " *",
+              " * A javascript library for reading, manipulating, and writing MIDI files",
+              " * @author Steven Sojka - " + new Date().toLocaleDateString(),
+              " *",
+              " * MIT Licensed",
+              " */",
+              ""].join("\n");
 
 var minify = function(file, output, callback) {
   console.log("Minifying " + file);
@@ -36,20 +46,41 @@ var concat = function(files, output, callback) {
   exec("cat " + _files.join(" ") + " > " + output, callback);
 };
 
+var prependHeader = function(file, callback) {
+  var _file = file.replace(/.*\//, "");
+  var _header = header.replace("@FILE_NAME@", _file);
+  fs.readFile(file, 'utf8', function(err, data) {
+
+    fs.writeFile(file, _header + stripLogs(data), callback);
+  });
+};
+
+var stripLogs = function(data) {
+  return data.replace(/console\.(.*)\((.*)\);|console\.(.*)\((.*)\)/ig, "");
+};
+
 var singleFileCallback = function(i) {
   if (!i) return;
+  var minFile = jsFiles[i].replace(".js", ".min.js");
 
-  minify("src/" + jsFiles[i], "dist/" + jsFiles[i].replace(".js", ".min.js"), function() {
-    singleFileCallback(--i);
+  minify("src/" + jsFiles[i], "dist/" + minFile, function() {
+    prependHeader("dist/" + minFile, function() {
+      singleFileCallback(--i);
+    });
   });  
 };
 
 clean(function() {
-  
+
   concat(jsFiles, "dist/jMID.js", function() {
     minify("dist/jMID.js", "dist/jMID.min.js", function() {
-      var i = jsFiles.length - 1;
-      singleFileCallback(i);
+      prependHeader("dist/jMID.min.js", function() {
+        var i = jsFiles.length - 1;
+        singleFileCallback(i);
+      });
+      prependHeader("dist/jMID.js", function() {
+
+      });
     });
   });
 

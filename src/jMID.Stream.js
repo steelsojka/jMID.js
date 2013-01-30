@@ -1,13 +1,3 @@
-/**
- * jMID.Stream class
- *
- * Used to read binary files
- *
- * @author Steven Sojka
- *
- * Much help from jasmid.js
- */
-
 var jMID = (function(jMID) {
 
   jMID.Stream = function(string) {

@@ -1,9 +1,3 @@
-/**
- * Converts MIDI notes to frequencys and vice versa
- *
- * @author Steven Sojka
- */
-
 var jMID = (function(jMID) {
 
   //////////////////////////////////////////////////

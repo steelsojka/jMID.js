@@ -1,4 +1,51 @@
+/**
+ * jMID.js v0.1
+ *
+ * A javascript library for reading, manipulating, and writing MIDI files
+ * @author Steven Sojka - Wednesday, January 30, 2013
+ *
+ * MIT Licensed
+ */
 var jMID = (function(jMID) {
+
+  ///////////////////////////////////////////////////////////////
+  /////////////////// Static variables //////////////////////////
+  ///////////////////////////////////////////////////////////////
+
+  jMID.EventTypes = {
+    META          : 0xff,
+    SYSEX         : 0xf0,
+    DIVIDED_SYSEX : 0xf7
+  };
+
+  jMID.SubEventTypes = {
+    SEQUENCE_NUMBER     : 0x00,
+    TEXT                : 0x01,
+    COPYRIGHT_NOTICE    : 0x02,
+    TRACK_NAME          : 0x03,
+    INSTRUMENT_NAME     : 0x04,
+    LYRICS              : 0x05,
+    MARKER              : 0x06,
+    CUE_POINT           : 0x07,
+    MIDI_CHANNEL_PREFIX : 0x20,
+    END_OF_TRACK        : 0x2f,
+    SET_TEMPO           : 0x51,
+    SMPTE_OFFSET        : 0x54,
+    TIME_SIGNATURE      : 0x58,
+    KEY_SIGNATURE       : 0x59,
+    SEQUENCER_SPECIFIC  : 0x7f,
+    NOTE_OFF            : 0x08,
+    NOTE_ON             : 0x09,
+    NOTE_AFTER_TOUCH    : 0x0a,
+    CONTROLLER          : 0x0b,
+    PROGRAM_CHANGE      : 0x0c,
+    CHANNEL_AFTER_TOUCH : 0x0d,
+    PITCH_BEND          : 0x0e
+  };
+
+  return jMID;
+
+}(jMID || {}));var jMID = (function(jMID) {
 
   var aProto = Array.prototype;
 
@@ -14,7 +61,7 @@ var jMID = (function(jMID) {
       return temp;
     },
     hexToAscii : function(hex) {
-      console.log(hex);
+      
       var str = "";
       for (var i = 0, _len = hex.length; i < _len; i++) {
         str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
@@ -139,46 +186,6 @@ var jMID = (function(jMID) {
   return jMID;
 
 }(jMID || {}));var jMID = (function(jMID) {
-
-  ///////////////////////////////////////////////////////////////
-  /////////////////// Static variables //////////////////////////
-  ///////////////////////////////////////////////////////////////
-
-  jMID.EventTypes = {
-    META          : 0xff,
-    SYSEX         : 0xf0,
-    DIVIDED_SYSEX : 0xf7
-  };
-
-  jMID.SubEventTypes = {
-    SEQUENCE_NUMBER     : 0x00,
-    TEXT                : 0x01,
-    COPYRIGHT_NOTICE    : 0x02,
-    TRACK_NAME          : 0x03,
-    INSTRUMENT_NAME     : 0x04,
-    LYRICS              : 0x05,
-    MARKER              : 0x06,
-    CUE_POINT           : 0x07,
-    MIDI_CHANNEL_PREFIX : 0x20,
-    END_OF_TRACK        : 0x2f,
-    SET_TEMPO           : 0x51,
-    SMPTE_OFFSET        : 0x54,
-    TIME_SIGNATURE      : 0x58,
-    KEY_SIGNATURE       : 0x59,
-    SEQUENCER_SPECIFIC  : 0x7f,
-    NOTE_OFF            : 0x08,
-    NOTE_ON             : 0x09,
-    NOTE_AFTER_TOUCH    : 0x0a,
-    CONTROLLER          : 0x0b,
-    PROGRAM_CHANGE      : 0x0c,
-    CHANNEL_AFTER_TOUCH : 0x0d,
-    PITCH_BEND          : 0x0e
-  };
-
-  return jMID;
-
-}(jMID || {}));var jMID = (function(jMID) {
-
 
   var _encodeChannelEvent = function(event) {
     var byteArray = [];
@@ -339,17 +346,7 @@ var jMID = (function(jMID) {
 
   return jMID;
 
-}(jMID || {}));/**
- * jMID.Stream class
- *
- * Used to read binary files
- *
- * @author Steven Sojka
- *
- * Much help from jasmid.js
- */
-
-var jMID = (function(jMID) {
+}(jMID || {}));var jMID = (function(jMID) {
 
   jMID.Stream = function(string) {
     this.index = 0;
@@ -554,19 +551,7 @@ var jMID = (function(jMID) {
 
   return jMID;
 
-}(jMID || {}));/**
- * jMID.Decoder class
- *
- * Decodes a binary MIDI file and returns and array of tracks
- * with events
- *
- * @author Steven Sojka
- * @dependencies: jMID.Stream.js
- *
- * Much help from jasmid.js
- */
-
-var jMID = (function(jMID) {
+}(jMID || {}));var jMID = (function(jMID) {
 
   //////////////////////////////////////////////////////////////////
   ////////////////////////// Private Methods ///////////////////////
@@ -991,13 +976,7 @@ var jMID = (function(jMID) {
 
   return jMID;
 
-}(jMID || {}));/**
- * Converts MIDI notes to frequencys and vice versa
- *
- * @author Steven Sojka
- */
-
-var jMID = (function(jMID) {
+}(jMID || {}));var jMID = (function(jMID) {
 
   //////////////////////////////////////////////////
   ////////////// Private Methods ///////////////////

@@ -1,6 +1,5 @@
 var jMID = (function(jMID) {
 
-
   var _encodeChannelEvent = function(event) {
     var byteArray = [];
 

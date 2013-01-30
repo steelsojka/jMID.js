@@ -1,15 +1,3 @@
-/**
- * jMID.Decoder class
- *
- * Decodes a binary MIDI file and returns and array of tracks
- * with events
- *
- * @author Steven Sojka
- * @dependencies: jMID.Stream.js
- *
- * Much help from jasmid.js
- */
-
 var jMID = (function(jMID) {
 
   //////////////////////////////////////////////////////////////////

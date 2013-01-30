@@ -16,9 +16,24 @@
   <script type="text/javascript" src="src/jMID.Stream.js"></script>
   <!--<script type="text/javascript" src="midifile.js"></script>
   <script type="text/javascript" src="stream 2.js"></script>-->
+  <style type="text/css">
+    body, html, #container {
+      width: 100%;
+      height: 100%;
+    }
+    #container {
+      position: relative;
+    }
+    .note {
+      position: absolute;
+      background-color: #FF0000;
+      border: 1px solid #FFFFFF;
+    }
+  </style>
 </head>
 <body>
   <input type="file">
+  <section id="container"></section>
 
   <script type="text/javascript">
     var handleChange = function(e) {
@@ -29,7 +44,7 @@
         window.stream = new jMID.Stream(e.target.result);
         window.decoder = new jMID.Decoder();
         window.file = decoder.decode(stream);
-        // draw(file);
+        draw(file);
         // window.player = new jMID.Player(decoded);
         // buffer2 = MidiFile(e.target.result);
       };
@@ -39,10 +54,8 @@
     };
 
     window.draw = function(file) {
-      var canvas = document.getElementById("canvas");
-      var ctx = canvas.getContext('2d');
-      var height = canvas.height;
-      ctx.fillStyle = "#FF0000";
+      var noteHeight = window.innerHeight / 127;
+      var container = document.querySelector("#container");
 
       for (var i = 0, _len = file.tracks.length; i < _len; i++) {
         var track = file.tracks[i];
@@ -53,15 +66,19 @@
           if (event.subtype === "noteOn") {
             start = event.time;
           } else if (event.subtype === "noteOff") {
-            document.createElement('div');
+            var div = document.createElement('div');
+            div.className = "note";
+            div.style.bottom = event.noteNumber * 10 + "px";
+            div.style.left = (start / 10) + "px";
+            div.style.width = (event.time - start) + "px";
+            div.style.height = noteHeight + "px";
+            container.appendChild(div);
           }
-
         }
       }
     };
 
     document.querySelector("input").addEventListener('change', handleChange, false);
   </script>
-  <canvas id="canvas" height="127" width="300" style="width:100%;height:300px"></canvas>
 </body>
 </html>

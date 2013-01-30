@@ -108,7 +108,52 @@ var jMID = (function(jMID) {
         var list = this._results.tracks[i];
         events = events.concat(list.events);
       }
+
       return events;
+    },
+    increment : function(prop, amount) {
+      jMID.Util.forAllEvents(this._results.tracks, function(e) {
+        if (prop in e) {
+          e[prop] += amount;
+        }
+      });
+
+      return this;
+    },
+    set : function(prop, value) {
+      jMID.Util.forAllEvents(this._results.tracks, function(e) {
+        if (prop in e) {
+          e[prop] = value;
+        }
+      });
+
+      return this;
+    },
+    get : function(track, index) {
+      return this._results.tracks[track].events[index];
+    },
+    eq : function(track, index) {
+      return new jMIDQueryResult(this._file, {tracks : [new jMID.Track([this.get.apply(this, arguments)])]});
+    },
+    encodeEvents : function(toBytes) {
+      var tracks = [];
+
+      jMID.Util.forAllEvents(this._results.tracks, function(e, i, track) {
+        if (!tracks[track]) tracks[track] = [];
+        tracks[track].push(!toBytes ? jMID.Util.bytesToString(e.encode()) : e.encode());
+      });
+
+      return tracks;
+    },
+    encodeTracks : function(toBytes) {
+      var tracks = [];
+
+      jMID.Util.forEachTrack(this._results.tracks, function(e, i) {
+        if (!tracks[i]) tracks[i] = [];
+        tracks[i].push(!toBytes ? e.encode() : jMID.Util.stringToBytes(e.encode()));
+      });
+
+      return tracks;
     },
     apply : function() {
       for (var i = 0, _len = this._results.tracks.length; i < _len; i++) {
@@ -121,7 +166,7 @@ var jMID = (function(jMID) {
   };
 
   jMID.Query = function(midiFile) {
-    if (!midiFile) {
+    if (!midiFile && !midiFile instanceof jMID.File) {
       throw new Error("jMID.File is needed for querying");
       return;
     }

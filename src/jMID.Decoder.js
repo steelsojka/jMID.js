@@ -233,7 +233,7 @@ var jMID = (function(jMID) {
         var stream = new jMID.Stream(chunk.data);
         while (!stream.eof()) {
           tracks[i].pushEvent(_readEvent.call(this, stream));
-        } 
+        }
       }
 
       return new jMID.File({

@@ -2,7 +2,7 @@
  * jMID.js v0.1
  *
  * A javascript library for reading, manipulating, and writing MIDI files
- * @author Steven Sojka - Wednesday, January 30, 2013
+ * @author Steven Sojka - Thursday, January 31, 2013
  *
  * MIT Licensed
  */
@@ -155,12 +155,29 @@ var jMID = (function(jMID) {
         self.forEachEvent.apply(self, [track, iterator, index].concat(args));
       });
     },
+    forAllNotes : function(tracks, iterator) {
+      var self = this;
+      var args = aProto.slice.call(arguments);
+      args.splice(0, 2);
+
+      this.forEachTrack(tracks, function(track, index) {
+        self.forEachNote.apply(self, [track, iterator, index].concat(args));
+      });
+    },
     forEachTrack : function(tracks, iterator) {
       var args = aProto.slice.call(arguments);
       args.splice(0, 2);
 
       for (var i = 0, _len = tracks.length; i < _len; i++) {
         iterator.apply(this, [tracks[i], i].concat(args));
+      }
+    },
+    forEachNote : function(track, iterator) {
+      var args = aProto.slice.call(arguments);
+      args.splice(0, 2);
+
+      for (var i = 0, _len = track.notes.length; i < _len; i++) {
+        iterator.apply(this, [track.notes[i], i].concat(args));
       }
     },
     forEachEvent : function(track, iterator) {
@@ -290,13 +307,37 @@ var jMID = (function(jMID) {
 
 }(jMID || {}));var jMID = (function(jMID) {
 
-  jMID.Track = function(events) {
-    this.events = events || [];
+  var _remove = function(string) {
+    var what, a = Array.prototype.slice.call(arguments, 1), L = a.length, ax;
+    while (L && this[string].length) {
+      what = a[--L];
+      while ((ax = this[string].indexOf(what)) !== -1) {
+        this[string].splice(ax, 1);
+      }
+    }
+    return this;
+  };
+
+  jMID.Track = function(options) {
+    this.events = [];
+    this.notes = [];
+
+    for (var key in options) {
+      if (options.hasOwnProperty(key)) {
+        this[key] = options[key];
+      }
+    }
+
+    this.processNotes();
   };
 
   jMID.Track.prototype = {
     pushEvent : function(event) {
       this.events.push(event);
+      return this;
+    },
+    pushNote : function(note) {
+      this.notes.push(note);
       return this;
     },
     getEvents : function(index) {
@@ -310,18 +351,28 @@ var jMID = (function(jMID) {
         return this.events;
       }
     },
-    removeEvents : function() {
-      var what, a = arguments, L = a.length, ax;
-      while (L && this.events.length) {
-        what = a[--L];
-        while ((ax = this.events.indexOf(what)) !== -1) {
-          this.events.splice(ax, 1);
+    getNotes : function(index) {
+      if (typeof index !== "undefined") {
+        if (index >= 0 && index < this.notes.length) {
+          return this.notes[index];
+        } else {
+          return null;
         }
+      } else {
+        return this.notes;
       }
-      return this;
+    },
+    removeEvents : function() {
+      return _remove.apply(this, ["events"].concat(Array.prototype.slice.call(arguments)));
+    },
+    removeNotes : function() {
+      return _remove.apply(this, ["notes"].concat(Array.prototype.slice.call(arguments)));
     },
     cloneEvents : function() {
       return this.events.slice(0);
+    }, 
+    cloneNotes : function() {
+      return this.notes.slice(0);
     },
     encode : function() {
       var startByte   = [0x4d, 0x54, 0x72, 0x6b];
@@ -341,6 +392,122 @@ var jMID = (function(jMID) {
       var lengthBytes = jMID.Util.stringToBytes(trackLength.toString(16), 4);
 
       return jMID.Util.bytesToString(startByte.concat(lengthBytes, eventBytes));
+    },
+    adjustEventTime : function(event, ms) {
+      var event         = jMID.Util.isNumber(event) ? this.events[event] : event;
+      var index         = this.events.indexOf(event);
+      var nextEvent     = this.events[index + 1];
+      var previousEvent = this.events[index - 1];
+      var ticks         = Math.round(ms / this.timing.MSPT);
+      var tempDelta, newIndex;
+
+      // event.deltaTime += ticks;
+      event.time += ms;
+      this.events.splice(index, 1);
+
+      for (var i = 0, _len = this.events.length; i < _len; i++) {
+        var ev = this.events[i];
+        if (event.time >= ev.time) continue;
+
+        this.events.splice(i, 0, event);
+        newIndex = i;
+
+        break;
+      }
+
+      this.calculateDelta(nextEvent, event, this.events[newIndex + 1]);
+    },
+    calculateDelta : function() {
+      var args = Array.prototype.slice.call(arguments);
+
+      for (var i = 0, _len = args.length; i < _len; i++) {
+        var event = args[i];
+        var index = this.events.indexOf(event);
+        var pEv = this.events[index - 1];
+        var nEv = this.events[index + 1];
+
+        if (!pEv) {
+          event.deltaTime = Math.round(event.time / this.timing.MSPT);
+        } else {
+          event.deltaTime = Math.round((event.time - pEv.time) / this.timing.MSPT);
+        }
+      }
+    },
+    switchEvents : function(event, otherEvent) {
+      var index1 = this.events.indexOf(event);
+      var index2 = this.events.indexOf(otherEvent);
+
+      var temp = this.events.splice(index2, 1, event);
+      this.events.splice(index1, 1, otherEvent);
+    },
+    processNotes : function() {
+      var noteOns = {};
+      this.notes = [];
+
+      for (var i = 0, _len = this.events.length; i < _len; i++) {
+        var event = this.events[i];
+        if (event.subtype === "noteOn") {
+          noteOns[event.noteNumber] = event;
+        } else if (event.subtype === "noteOff") {
+          if (event.noteNumber in noteOns) {
+            this.notes.push(new jMID.Note(noteOns[event.noteNumber], event, this));
+            delete noteOns[event.noteNumber];
+          }
+        }
+      }
+    },
+    processChannelEventTimes : function() {
+      var MSPT = this.timing.MSPT;
+      var runningTime = 0;
+      var track = this;
+
+      for (var x = 0, _len2 = track.events.length; x < _len2; x++) {
+        var event = track.events[x];          
+        var time = event.deltaTime * MSPT;
+
+        event.set('time', runningTime + time);
+        runningTime += time;
+      }
+    }
+  };
+
+  return jMID;
+
+}(jMID || {}));var jMID = (function() {
+
+  jMID.Note = function(noteOn, noteOff, track) {
+    this.noteOn      = noteOn;
+    this.noteOff     = noteOff;
+    this.start       = noteOn.time;
+    this.end         = noteOff.time;
+    this.track       = track;
+    this.velocity    = noteOn.velocity;
+    this.noteNumber = noteOn.noteNumber;
+    this.length      = noteOff.time - noteOn.time;
+  };
+
+  jMID.Note.prototype = {
+    adjustTime : function(amount) {
+      this.track.adjustEventTime(this.noteOn, amount);
+      this.track.adjustEventTime(this.noteOff, amount);
+      this.track.processNotes();
+    },
+    adjustLength : function(amount) {
+      this.track.adjustEventTime(this.noteOff, amount);
+      this.length = this.noteOff.time - this.noteOn.time;
+      this.end = this.noteOff.time;
+    },
+    adjustNoteNumber : function(amount) {
+      this.setNoteNumber(this.noteNumber + amount);
+    },
+    setNoteNumber : function(noteNumber) {
+      this.noteOn.noteNumber  = noteNumber;
+      this.noteOff.noteNumber = noteNumber;
+      this.noteNumber         = noteNumber;
+    },
+    setVelocity : function(velocity) {
+      this.noteOn.velocity = velocity;
+      this.velocity = velocity;
     }
   };
 
@@ -426,7 +593,13 @@ var jMID = (function(jMID) {
     };
 
     this.processMetaEvents();
+    
+    for (var i = this.tracks.length - 1; i >= 0; i--) {
+      this.tracks[i].timing = this.timing;
+    };
+
     this.processChannelEventTimes();
+    this.processNotes();
   };
 
   jMID.File.prototype = {
@@ -451,20 +624,14 @@ var jMID = (function(jMID) {
       this.timing.MSPQN = this.timing.MicroSPB / 1000;
       this.timing.MSPT = this.timing.MSPQN / this.header.ticksPerBeat;
     },
-    processChannelEventTimes : function() {
-      var MSPT = this.timing.MSPT;
-      
+    processChannelEventTimes : function() {      
       for (var i = 0, _len = this.tracks.length; i < _len; i++) {
-        var track = this.tracks[i];
-        var runningTime = 0;
-
-        for (var x = 0, _len2 = track.events.length; x < _len2; x++) {
-          var event = track.events[x];          
-          var time = event.deltaTime * MSPT;
-
-          event.set('time', runningTime + time);
-          runningTime += time;
-        }
+        this.tracks[i].processChannelEventTimes();
+      }
+    },
+    processNotes : function() {
+      for (var i = 0, _len = this.tracks.length; i < _len; i++) {
+        this.tracks[i].processNotes();
       }
     },
     calculateBPM : function() {
@@ -766,7 +933,7 @@ var jMID = (function(jMID) {
         var stream = new jMID.Stream(chunk.data);
         while (!stream.eof()) {
           tracks[i].pushEvent(_readEvent.call(this, stream));
-        } 
+        }
       }
 
       return new jMID.File({
@@ -781,6 +948,8 @@ var jMID = (function(jMID) {
 }(jMID || {}));var jMID = (function(jMID) {
 
   var _parseQuery = function(query) {
+    if (!query) return;
+
     var _queries = query.split(",").map(function(a) { return a.trim(); });
     var conditions = [];
 
@@ -812,19 +981,27 @@ var jMID = (function(jMID) {
     return temp;
   };
 
-  var _search = function(query) {
+
+
+  var _search = function(query, noteSearch) {
     var queries = _parseQuery(query);
     var tracks = [];
     
 
     for (var y = 0, _len3 = this._results.tracks.length; y < _len3; y++) {
      var track = this._results.tracks[y];
-     tracks.push(new jMID.Track());
-     
-      for (var z = 0, _len4 = track.getEvents().length; z < _len4; z++) {
-        var event = track.getEvents(z);
-        var isValid = false;
+     tracks.push(new jMID.Track({timing : track.timing}));
+     var items = this.noteSearch ? track.getNotes() : track.getEvents();
+
+      if (!query) {
+        tracks[y] = track;
+        continue;
+      } 
         
+      for (var z = 0, _len4 = items.length; z < _len4; z++) {
+        var event = this.noteSearch ? track.getNotes(z) : track.getEvents(z);
+        var isValid = true;
+
         for (var i = 0, _len = queries.length; i < _len; i++) {
           var conditions = queries[i];
 
@@ -845,7 +1022,11 @@ var jMID = (function(jMID) {
             if (!isValid) break;;
           }
           if (isValid) {
-            tracks[y].pushEvent(event);
+            if (this.noteSearch) {
+              tracks[y].pushNote(event);
+            } else {
+              tracks[y].pushEvent(event);
+            }
           } 
         }
       }
@@ -856,8 +1037,8 @@ var jMID = (function(jMID) {
     };
   };
 
-  var jMIDQueryResult = function(decodedMidi, results) {
-
+  var jMIDQueryResult = function(decodedMidi, results, noteSearch) {
+    this.noteSearch = noteSearch;
     this._results = results ? results : {tracks : decodedMidi.tracks.slice(0)};
     this._file = decodedMidi;
   };
@@ -865,7 +1046,7 @@ var jMID = (function(jMID) {
   jMIDQueryResult.prototype = {
     filter : function(query) {
       var results = _search.call(this, query);
-      return new jMIDQueryResult(this._file, results);
+      return new jMIDQueryResult(this._file, results, this.noteSearch);
     },
     not : function(query) {
       var resultsToRemove = _search.call(this, query);
@@ -874,25 +1055,35 @@ var jMID = (function(jMID) {
 
       for (var i = 0, _len = results.tracks.length; i < _len; i++) {
         var track = results.tracks[i];
-        var newTrack = new jMID.Track(track.cloneEvents());
-        newTrack.removeEvents.apply(newTrack, resultsToRemove.tracks[i].getEvents());
+        var newTrack = new jMID.Track();
+
+        if (!this.noteSearch) {
+          newTrack.events = track.cloneEvents();
+          newTrack.removeEvents.apply(newTrack, resultsToRemove.tracks[i].getEvents());
+        } else {
+          newTrack.notes = track.cloneNotes();
+          newTrack.removeNotes.apply(newTrack, resultsToRemove.tracks[i].getNotes());
+        }
+
         newResults.push(newTrack);
       }
 
-      return new jMIDQueryResult(this._file, {tracks : newResults});
+      return new jMIDQueryResult(this._file, {tracks : newResults}, this.noteSearch);
     },
     toArray: function() {
       var events = [];
 
       for (var i = 0, _len = this._results.tracks.length; i < _len; i++) {
         var list = this._results.tracks[i];
-        events = events.concat(list.events);
+        events = events.concat(this.noteSearch ? list.notes : list.events);
       }
 
       return events;
     },
     increment : function(prop, amount) {
-      jMID.Util.forAllEvents(this._results.tracks, function(e) {
+      var func = this.noteSearch ? "forAllNotes" : "forAllEvents";
+
+      jMID.Util[func](this._results.tracks, function(e) {
         if (prop in e) {
           e[prop] += amount;
         }
@@ -901,19 +1092,23 @@ var jMID = (function(jMID) {
       return this;
     },
     set : function(prop, value) {
-      jMID.Util.forAllEvents(this._results.tracks, function(e) {
+      var func = this.noteSearch ? "forAllNotes" : "forAllEvents";
+
+      jMID.Util[func](this._results.tracks, function(e) {
         if (prop in e) {
           e[prop] = value;
         }
       });
-
       return this;
     },
     get : function(track, index) {
       return this._results.tracks[track].events[index];
     },
     eq : function(track, index) {
-      return new jMIDQueryResult(this._file, {tracks : [new jMID.Track([this.get.apply(this, arguments)])]});
+      return new jMIDQueryResult(this._file, {tracks : [new jMID.Track({
+        events : [this.get.apply(this, arguments)],
+        timing : track.timing
+      })]});
     },
     encodeEvents : function(toBytes) {
       var tracks = [];
@@ -935,10 +1130,38 @@ var jMID = (function(jMID) {
 
       return tracks;
     },
+    notes : function(query) {
+      this.noteSearch = true;
+      var results = _search.call(this, query);
+      return new jMIDQueryResult(this._file, results, true);
+    },
+    adjustTime : function(amount) {
+      if (!this.noteSearch) return this;
+
+      jMID.Util.forAllNotes(this._results.tracks, function(e, i, track) {
+        e.adjustTime(amount);
+      });
+
+      return this;
+    },
+    adjustNoteNumber : function(amount) {
+      if (!this.noteSearch) return this;
+
+      jMID.Util.forAllNotes(this._results.tracks, function(e, i, track) {
+        e.adjustNoteNumber(amount);
+      });
+
+      return this;
+    },
     apply : function() {
+      if (this.noteSearch) return this;
+
       for (var i = 0, _len = this._results.tracks.length; i < _len; i++) {
         var track = this._results.tracks[i];
-        this._file.tracks[i] = new jMID.Track(track.cloneEvents());
+        this._file.tracks[i] = new jMID.Track({
+          events : track.cloneEvents(),
+          timing : this._file.tracks[i].timing
+        });
       }
 
       return new jMIDQueryResult(this._file);

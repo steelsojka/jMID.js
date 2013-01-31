@@ -1,6 +1,8 @@
 var jMID = (function(jMID) {
 
   var _parseQuery = function(query) {
+    if (!query) return;
+
     var _queries = query.split(",").map(function(a) { return a.trim(); });
     var conditions = [];
 
@@ -32,19 +34,27 @@ var jMID = (function(jMID) {
     return temp;
   };
 
-  var _search = function(query) {
+
+
+  var _search = function(query, noteSearch) {
     var queries = _parseQuery(query);
     var tracks = [];
     
 
     for (var y = 0, _len3 = this._results.tracks.length; y < _len3; y++) {
      var track = this._results.tracks[y];
-     tracks.push(new jMID.Track());
-     
-      for (var z = 0, _len4 = track.getEvents().length; z < _len4; z++) {
-        var event = track.getEvents(z);
-        var isValid = false;
+     tracks.push(new jMID.Track({timing : track.timing}));
+     var items = this.noteSearch ? track.getNotes() : track.getEvents();
+
+      if (!query) {
+        tracks[y] = track;
+        continue;
+      } 
         
+      for (var z = 0, _len4 = items.length; z < _len4; z++) {
+        var event = this.noteSearch ? track.getNotes(z) : track.getEvents(z);
+        var isValid = true;
+
         for (var i = 0, _len = queries.length; i < _len; i++) {
           var conditions = queries[i];
 
@@ -65,7 +75,11 @@ var jMID = (function(jMID) {
             if (!isValid) break;;
           }
           if (isValid) {
-            tracks[y].pushEvent(event);
+            if (this.noteSearch) {
+              tracks[y].pushNote(event);
+            } else {
+              tracks[y].pushEvent(event);
+            }
           } 
         }
       }
@@ -76,8 +90,8 @@ var jMID = (function(jMID) {
     };
   };
 
-  var jMIDQueryResult = function(decodedMidi, results) {
-
+  var jMIDQueryResult = function(decodedMidi, results, noteSearch) {
+    this.noteSearch = noteSearch;
     this._results = results ? results : {tracks : decodedMidi.tracks.slice(0)};
     this._file = decodedMidi;
   };
@@ -85,7 +99,7 @@ var jMID = (function(jMID) {
   jMIDQueryResult.prototype = {
     filter : function(query) {
       var results = _search.call(this, query);
-      return new jMIDQueryResult(this._file, results);
+      return new jMIDQueryResult(this._file, results, this.noteSearch);
     },
     not : function(query) {
       var resultsToRemove = _search.call(this, query);
@@ -94,25 +108,35 @@ var jMID = (function(jMID) {
 
       for (var i = 0, _len = results.tracks.length; i < _len; i++) {
         var track = results.tracks[i];
-        var newTrack = new jMID.Track(track.cloneEvents());
-        newTrack.removeEvents.apply(newTrack, resultsToRemove.tracks[i].getEvents());
+        var newTrack = new jMID.Track();
+
+        if (!this.noteSearch) {
+          newTrack.events = track.cloneEvents();
+          newTrack.removeEvents.apply(newTrack, resultsToRemove.tracks[i].getEvents());
+        } else {
+          newTrack.notes = track.cloneNotes();
+          newTrack.removeNotes.apply(newTrack, resultsToRemove.tracks[i].getNotes());
+        }
+
         newResults.push(newTrack);
       }
 
-      return new jMIDQueryResult(this._file, {tracks : newResults});
+      return new jMIDQueryResult(this._file, {tracks : newResults}, this.noteSearch);
     },
     toArray: function() {
       var events = [];
 
       for (var i = 0, _len = this._results.tracks.length; i < _len; i++) {
         var list = this._results.tracks[i];
-        events = events.concat(list.events);
+        events = events.concat(this.noteSearch ? list.notes : list.events);
       }
 
       return events;
     },
     increment : function(prop, amount) {
-      jMID.Util.forAllEvents(this._results.tracks, function(e) {
+      var func = this.noteSearch ? "forAllNotes" : "forAllEvents";
+
+      jMID.Util[func](this._results.tracks, function(e) {
         if (prop in e) {
           e[prop] += amount;
         }
@@ -121,19 +145,23 @@ var jMID = (function(jMID) {
       return this;
     },
     set : function(prop, value) {
-      jMID.Util.forAllEvents(this._results.tracks, function(e) {
+      var func = this.noteSearch ? "forAllNotes" : "forAllEvents";
+
+      jMID.Util[func](this._results.tracks, function(e) {
         if (prop in e) {
           e[prop] = value;
         }
       });
-
       return this;
     },
     get : function(track, index) {
       return this._results.tracks[track].events[index];
     },
     eq : function(track, index) {
-      return new jMIDQueryResult(this._file, {tracks : [new jMID.Track([this.get.apply(this, arguments)])]});
+      return new jMIDQueryResult(this._file, {tracks : [new jMID.Track({
+        events : [this.get.apply(this, arguments)],
+        timing : track.timing
+      })]});
     },
     encodeEvents : function(toBytes) {
       var tracks = [];
@@ -155,10 +183,38 @@ var jMID = (function(jMID) {
 
       return tracks;
     },
+    notes : function(query) {
+      this.noteSearch = true;
+      var results = _search.call(this, query);
+      return new jMIDQueryResult(this._file, results, true);
+    },
+    adjustTime : function(amount) {
+      if (!this.noteSearch) return this;
+
+      jMID.Util.forAllNotes(this._results.tracks, function(e, i, track) {
+        e.adjustTime(amount);
+      });
+
+      return this;
+    },
+    adjustNoteNumber : function(amount) {
+      if (!this.noteSearch) return this;
+
+      jMID.Util.forAllNotes(this._results.tracks, function(e, i, track) {
+        e.adjustNoteNumber(amount);
+      });
+
+      return this;
+    },
     apply : function() {
+      if (this.noteSearch) return this;
+
       for (var i = 0, _len = this._results.tracks.length; i < _len; i++) {
         var track = this._results.tracks[i];
-        this._file.tracks[i] = new jMID.Track(track.cloneEvents());
+        this._file.tracks[i] = new jMID.Track({
+          events : track.cloneEvents(),
+          timing : this._file.tracks[i].timing
+        });
       }
 
       return new jMIDQueryResult(this._file);

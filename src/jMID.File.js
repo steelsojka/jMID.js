@@ -20,7 +20,13 @@ var jMID = (function(jMID) {
     };
 
     this.processMetaEvents();
+    
+    for (var i = this.tracks.length - 1; i >= 0; i--) {
+      this.tracks[i].timing = this.timing;
+    };
+
     this.processChannelEventTimes();
+    this.processNotes();
   };
 
   jMID.File.prototype = {
@@ -45,20 +51,14 @@ var jMID = (function(jMID) {
       this.timing.MSPQN = this.timing.MicroSPB / 1000;
       this.timing.MSPT = this.timing.MSPQN / this.header.ticksPerBeat;
     },
-    processChannelEventTimes : function() {
-      var MSPT = this.timing.MSPT;
-      
+    processChannelEventTimes : function() {      
       for (var i = 0, _len = this.tracks.length; i < _len; i++) {
-        var track = this.tracks[i];
-        var runningTime = 0;
-
-        for (var x = 0, _len2 = track.events.length; x < _len2; x++) {
-          var event = track.events[x];          
-          var time = event.deltaTime * MSPT;
-
-          event.set('time', runningTime + time);
-          runningTime += time;
-        }
+        this.tracks[i].processChannelEventTimes();
+      }
+    },
+    processNotes : function() {
+      for (var i = 0, _len = this.tracks.length; i < _len; i++) {
+        this.tracks[i].processNotes();
       }
     },
     calculateBPM : function() {

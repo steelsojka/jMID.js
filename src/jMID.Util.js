@@ -108,12 +108,29 @@ var jMID = (function(jMID) {
         self.forEachEvent.apply(self, [track, iterator, index].concat(args));
       });
     },
+    forAllNotes : function(tracks, iterator) {
+      var self = this;
+      var args = aProto.slice.call(arguments);
+      args.splice(0, 2);
+
+      this.forEachTrack(tracks, function(track, index) {
+        self.forEachNote.apply(self, [track, iterator, index].concat(args));
+      });
+    },
     forEachTrack : function(tracks, iterator) {
       var args = aProto.slice.call(arguments);
       args.splice(0, 2);
 
       for (var i = 0, _len = tracks.length; i < _len; i++) {
         iterator.apply(this, [tracks[i], i].concat(args));
+      }
+    },
+    forEachNote : function(track, iterator) {
+      var args = aProto.slice.call(arguments);
+      args.splice(0, 2);
+
+      for (var i = 0, _len = track.notes.length; i < _len; i++) {
+        iterator.apply(this, [track.notes[i], i].concat(args));
       }
     },
     forEachEvent : function(track, iterator) {

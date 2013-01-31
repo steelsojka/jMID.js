@@ -1,4 +1,4 @@
-var jMID = (function() {
+var jMID = (function(jMID) {
 
   jMID.Note = function(noteOn, noteOff, track) {
     this.noteOn      = noteOn;
@@ -7,7 +7,7 @@ var jMID = (function() {
     this.end         = noteOff.time;
     this.track       = track;
     this.velocity    = noteOn.velocity;
-    this.noteNumber = noteOn.noteNumber;
+    this.noteNumber  = noteOn.noteNumber;
     this.length      = noteOff.time - noteOn.time;
   };
 
@@ -33,8 +33,17 @@ var jMID = (function() {
     setVelocity : function(velocity) {
       this.noteOn.velocity = velocity;
       this.velocity = velocity;
+    },
+    setChannel : function(channel) {
+      if (!jMID.Util.inRange(channel, 0, 15)) return;
+      this.noteOn.channel = channel;
+      this.noteOff.channel = channel;
     }
   };
+
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Note);
+  }
 
   return jMID;
 

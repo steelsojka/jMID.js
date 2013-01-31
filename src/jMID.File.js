@@ -66,6 +66,9 @@ var jMID = (function(jMID) {
       this.timing.BPM = (microsecondsPerMinute / this.timing.MicroSPB) *
                         (this.timeSignature.beatValue / 4);
     },
+    getTrack : function(i) {
+      return this.tracks[i];
+    },
     getHeader : function() {
       return this.header;
     },
@@ -76,6 +79,10 @@ var jMID = (function(jMID) {
       return btoa(this.encode());
     }
   };
+
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.File);
+  }
 
   return jMID;
 

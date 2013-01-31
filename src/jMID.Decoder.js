@@ -243,6 +243,10 @@ var jMID = (function(jMID) {
     }
   };
 
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Decoder);
+  }
+
   return jMID; // Export
 
 }(jMID || {}));

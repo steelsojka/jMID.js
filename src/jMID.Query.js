@@ -230,6 +230,10 @@ var jMID = (function(jMID) {
     return new jMIDQueryResult(midiFile);
   };
 
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Query);
+  }
+
   return jMID;
 
 }(jMID || {}));

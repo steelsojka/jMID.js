@@ -4,11 +4,12 @@ var version = 0.1;
 var CLOSURE_PATH = "build/compiler.jar";
 var jsFiles = ["jMID.Core.js",
                "jMID.Util.js",
+               "jMID.Emitter.js",
                "jMID.Event.js",
                "jMID.Track.js",
+               "jMID.File.js",
                "jMID.Note.js",
                "jMID.Stream.js",
-               "jMID.File.js",
                "jMID.Encoder.js",
                "jMID.Decoder.js",
                "jMID.Query.js",

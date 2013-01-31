@@ -99,6 +99,10 @@ var jMID = (function(jMID) {
     }
   };
 
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Event);
+  }
+
   return jMID;
 
 }(jMID || {}));

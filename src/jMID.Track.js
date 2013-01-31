@@ -164,6 +164,10 @@ var jMID = (function(jMID) {
     }
   };
 
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Track);
+  }
+
   return jMID;
 
 }(jMID || {}));

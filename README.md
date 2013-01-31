@@ -37,10 +37,15 @@ var decoder = new jMID.Decoder();
 var midiFile = decoder.decode(myMidiFile); // Returns a jMID.File object
 ```
 
+Notes
+------
+
+Notes are different from individual events.  A note consists of a "noteOn" event and its corresponding "noteOff" event.  Notes have their own methods for manipulation making changing note timing, length, numbers, etc... easier by adjusting the "noteOn" and "noteOff" event together.
+
 Queries
 ------
 
-Queries can be performed on the various MIDI data, similiar to jQuery.
+Queries can be performed on the various MIDI data allowing chaining, similiar to jQuery.
 Pass your jMID.File object to the jMID.Query module.
 
 ```javascript
@@ -55,6 +60,30 @@ jm$(midiFile).filter("velocity>45").not("type:meta"); // All notes with a veloci
 // You can even increment values
 
 jMID.Query(midiFile).filter("noteNumber>10").increment("velocity", 25); // Raise velocity 25 of note numbers higher than 10
+```
+
+You can query notes instead of events by using the "notes" method.
+
+```javascript
+jMID.Query(midiFile).notes().not("noteNumber:41"); // All notes not number 41
+
+jMID.Query(midiFile).notes("velocity>60"); // All notes with velocity greater than 60
+```
+Emitting Events
+---------------
+
+Almost any class can emit events (jMID.Note, jMID.Event, jMID.Track, etc...).  Binding a listener is the same as you would do in jQuery.
+
+```javascript
+var track = midiFile.getTrack(i);
+
+track.on('encodeComplete', function(param1) {
+  console.log("DONE ENCODING!!!");
+});
+
+track.trigger('encodeComplete', someParam); // "DONE ENCODING!!!"
+// You can also pass params through the event;
+
 ```
 
 Encoding

@@ -42,6 +42,10 @@ var jMID = (function() {
     }
   };
 
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Encoder);
+  }
+
   return jMID;
 
 }(jMID || {}));

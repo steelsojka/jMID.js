@@ -187,6 +187,9 @@ var jMID = (function(jMID) {
       for (var i = 0, _len = track.events.length; i < _len; i++) {
         iterator.apply(this, [track.events[i], i].concat(args));
       }
+    },
+    inRange : function(value, min, max) {
+      return value >= min && value <= max;
     }
   };
 
@@ -198,6 +201,40 @@ var jMID = (function(jMID) {
       }
     }(isTypes[i]));
 
+  };
+
+  return jMID;
+
+}(jMID || {}));var jMID = (function(jMID) {
+
+  jMID.Emitter = function() {};
+
+  jMID.Emitter.prototype = {
+    on : function(event, listener) {
+      this.__events = this.__events || {};
+      this.__events[event] = this.__events[event] || [];
+      this.__events[event].push(listener);
+    },
+    off : function(event, listener) {
+      this.__events = this.__events || {};
+      if (!(event in this.__events)) return;
+      this.__events[event].splice(this.__events[event].indexOf(listener), 1);
+    }, 
+    trigger : function(event) {
+      this.__events = this.__events || {};
+      if (!(event in this.__events)) return;
+      for (var i = 0, _len = this.__events[event].length; i < _len; i++) {
+        this.__events[event][i].apply(this, Array.prototype.slice.call(arguments, 1));
+      }
+    }
+  };
+
+  jMID.Emitter.register = function(obj) {
+    for (var key in jMID.Emitter.prototype) {
+      if (jMID.Emitter.prototype.hasOwnProperty(key)) {
+        obj.prototype[key] = jMID.Emitter.prototype[key];
+      }
+    }
   };
 
   return jMID;
@@ -302,6 +339,10 @@ var jMID = (function(jMID) {
       }
     }
   };
+
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Event);
+  }
 
   return jMID;
 
@@ -471,105 +512,11 @@ var jMID = (function(jMID) {
     }
   };
 
-  return jMID;
-
-}(jMID || {}));var jMID = (function() {
-
-  jMID.Note = function(noteOn, noteOff, track) {
-    this.noteOn      = noteOn;
-    this.noteOff     = noteOff;
-    this.start       = noteOn.time;
-    this.end         = noteOff.time;
-    this.track       = track;
-    this.velocity    = noteOn.velocity;
-    this.noteNumber = noteOn.noteNumber;
-    this.length      = noteOff.time - noteOn.time;
-  };
-
-  jMID.Note.prototype = {
-    adjustTime : function(amount) {
-      this.track.adjustEventTime(this.noteOn, amount);
-      this.track.adjustEventTime(this.noteOff, amount);
-      this.track.processNotes();
-    },
-    adjustLength : function(amount) {
-      this.track.adjustEventTime(this.noteOff, amount);
-      this.length = this.noteOff.time - this.noteOn.time;
-      this.end = this.noteOff.time;
-    },
-    adjustNoteNumber : function(amount) {
-      this.setNoteNumber(this.noteNumber + amount);
-    },
-    setNoteNumber : function(noteNumber) {
-      this.noteOn.noteNumber  = noteNumber;
-      this.noteOff.noteNumber = noteNumber;
-      this.noteNumber         = noteNumber;
-    },
-    setVelocity : function(velocity) {
-      this.noteOn.velocity = velocity;
-      this.velocity = velocity;
-    }
-  };
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Track);
+  }
 
   return jMID;
-
-}(jMID || {}));var jMID = (function(jMID) {
-
-  jMID.Stream = function(string) {
-    this.index = 0;
-    this.string = string;
-  };
-
-  jMID.Stream.prototype = {
-    read : function(length) {
-      var res = this.string.substr(this.index, length);
-      this.index += length;
-      return res;
-    },
-    readInt32 : function() {
-      var str = this.string;
-      var i   = this.index;
-      var res = (str.charCodeAt(i) << 24) +
-                (str.charCodeAt(i + 1) << 16) +
-                (str.charCodeAt(i + 2) << 8) +
-                (str.charCodeAt(i + 3));
-
-      this.index += 4;
-      return res;
-    },
-    readInt16 : function() {
-      var str = this.string;
-      var i   = this.index;
-      var res = (str.charCodeAt(i) << 8) +
-                (str.charCodeAt(i + 1));
-
-      this.index += 2;
-      return res;
-    },
-    readInt8 : function(signed) {
-      var res = this.string.charCodeAt(this.index);
-      this.index += 1;
-
-      return signed && res > 127 ? res - 256 : res; 
-    },
-    eof : function() {
-      return this.index >= this.string.length;
-    },
-    readVarInt : function() {
-      var res = 0;
-      while (true) {
-        var a = this.readInt8();
-        if (a & 0x80) {
-          res += (a & 0x7f);
-          res <<= 7;
-        } else {
-          return res + a;
-        }
-      }
-    }
-  };
-
-  return jMID; // Export
 
 }(jMID || {}));var jMID = (function(jMID) {
 
@@ -639,6 +586,9 @@ var jMID = (function(jMID) {
       this.timing.BPM = (microsecondsPerMinute / this.timing.MicroSPB) *
                         (this.timeSignature.beatValue / 4);
     },
+    getTrack : function(i) {
+      return this.tracks[i];
+    },
     getHeader : function() {
       return this.header;
     },
@@ -650,7 +600,122 @@ var jMID = (function(jMID) {
     }
   };
 
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.File);
+  }
+
   return jMID;
+
+}(jMID || {}));var jMID = (function(jMID) {
+
+  jMID.Note = function(noteOn, noteOff, track) {
+    this.noteOn      = noteOn;
+    this.noteOff     = noteOff;
+    this.start       = noteOn.time;
+    this.end         = noteOff.time;
+    this.track       = track;
+    this.velocity    = noteOn.velocity;
+    this.noteNumber  = noteOn.noteNumber;
+    this.length      = noteOff.time - noteOn.time;
+  };
+
+  jMID.Note.prototype = {
+    adjustTime : function(amount) {
+      this.track.adjustEventTime(this.noteOn, amount);
+      this.track.adjustEventTime(this.noteOff, amount);
+      this.track.processNotes();
+    },
+    adjustLength : function(amount) {
+      this.track.adjustEventTime(this.noteOff, amount);
+      this.length = this.noteOff.time - this.noteOn.time;
+      this.end = this.noteOff.time;
+    },
+    adjustNoteNumber : function(amount) {
+      this.setNoteNumber(this.noteNumber + amount);
+    },
+    setNoteNumber : function(noteNumber) {
+      this.noteOn.noteNumber  = noteNumber;
+      this.noteOff.noteNumber = noteNumber;
+      this.noteNumber         = noteNumber;
+    },
+    setVelocity : function(velocity) {
+      this.noteOn.velocity = velocity;
+      this.velocity = velocity;
+    },
+    setChannel : function(channel) {
+      if (!jMID.Util.inRange(channel, 0, 15)) return;
+      this.noteOn.channel = channel;
+      this.noteOff.channel = channel;
+    }
+  };
+
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Note);
+  }
+
+  return jMID;
+
+}(jMID || {}));var jMID = (function(jMID) {
+
+  jMID.Stream = function(string) {
+    this.index = 0;
+    this.string = string;
+  };
+
+  jMID.Stream.prototype = {
+    read : function(length) {
+      var res = this.string.substr(this.index, length);
+      this.index += length;
+      return res;
+    },
+    readInt32 : function() {
+      var str = this.string;
+      var i   = this.index;
+      var res = (str.charCodeAt(i) << 24) +
+                (str.charCodeAt(i + 1) << 16) +
+                (str.charCodeAt(i + 2) << 8) +
+                (str.charCodeAt(i + 3));
+
+      this.index += 4;
+      return res;
+    },
+    readInt16 : function() {
+      var str = this.string;
+      var i   = this.index;
+      var res = (str.charCodeAt(i) << 8) +
+                (str.charCodeAt(i + 1));
+
+      this.index += 2;
+      return res;
+    },
+    readInt8 : function(signed) {
+      var res = this.string.charCodeAt(this.index);
+      this.index += 1;
+
+      return signed && res > 127 ? res - 256 : res; 
+    },
+    eof : function() {
+      return this.index >= this.string.length;
+    },
+    readVarInt : function() {
+      var res = 0;
+      while (true) {
+        var a = this.readInt8();
+        if (a & 0x80) {
+          res += (a & 0x7f);
+          res <<= 7;
+        } else {
+          return res + a;
+        }
+      }
+    }
+  };
+
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Stream);
+  }
+
+  return jMID; // Export
 
 }(jMID || {}));var jMID = (function() {
 
@@ -695,6 +760,10 @@ var jMID = (function(jMID) {
       return encoded;
     }
   };
+
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Encoder);
+  }
 
   return jMID;
 
@@ -943,6 +1012,10 @@ var jMID = (function(jMID) {
     }
   };
 
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Decoder);
+  }
+
   return jMID; // Export
 
 }(jMID || {}));var jMID = (function(jMID) {
@@ -1177,6 +1250,10 @@ var jMID = (function(jMID) {
     return new jMIDQueryResult(midiFile);
   };
 
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Query);
+  }
+
   return jMID;
 
 }(jMID || {}));var jMID = (function(jMID) {
@@ -1273,6 +1350,10 @@ var jMID = (function(jMID) {
     FREQUENCY_TO_NOTE : 2,
     NAME_TO_NOTE      : 3
   };
+
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Converter);
+  }
 
   return jMID;
 

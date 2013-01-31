@@ -93,6 +93,10 @@ var jMID = (function(jMID) {
     NAME_TO_NOTE      : 3
   };
 
+  if (jMID.Emitter) {
+    jMID.Emitter.register(jMID.Converter);
+  }
+
   return jMID;
 
 }(jMID || {}));

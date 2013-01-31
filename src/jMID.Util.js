@@ -140,6 +140,9 @@ var jMID = (function(jMID) {
       for (var i = 0, _len = track.events.length; i < _len; i++) {
         iterator.apply(this, [track.events[i], i].concat(args));
       }
+    },
+    inRange : function(value, min, max) {
+      return value >= min && value <= max;
     }
   };
 

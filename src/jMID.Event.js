@@ -68,7 +68,15 @@ var jMID = (function(jMID) {
     return byteArray;
   };
 
-  jMID.Event = function() {};
+  jMID.Event = function(options) {
+    this.track = null;
+
+    for (var key in options) {
+      if (options.hasOwnProperty(key)) {
+        this[key] = options[key];
+      }
+    }
+  };
 
   jMID.Event.prototype = {
     set : function() {
@@ -95,6 +103,11 @@ var jMID = (function(jMID) {
         return _encodeMetaEvent(this);
       } else {
         return _encodeChannelEvent(this);
+      }
+    },
+    remove : function() {
+      if (this.track !== null) {
+        this.track.removeEvent(this);
       }
     }
   };

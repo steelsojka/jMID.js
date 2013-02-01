@@ -188,23 +188,14 @@ var jMID = (function(jMID) {
       var results = _search.call(this, query);
       return new jMIDQueryResult(this._file, results, true);
     },
-    adjustTime : function(amount) {
-      if (!this.noteSearch) return this;
+    remove : function() {
+      var func = this.noteSearch ? "forAllNotes" : "forAllEvents";
 
-      jMID.Util.forAllNotes(this._results.tracks, function(e, i, track) {
-        e.adjustTime(amount);
+      jMID.Util[func](this._results.tracks, function(e, i) {
+        e.remove();
       });
 
-      return this;
-    },
-    adjustNoteNumber : function(amount) {
-      if (!this.noteSearch) return this;
-
-      jMID.Util.forAllNotes(this._results.tracks, function(e, i, track) {
-        e.adjustNoteNumber(amount);
-      });
-
-      return this;
+      return new jMIDQueryResult(this._file, {tracks : this._file.tracks.slice(0)}, this.noteSearch);
     },
     apply : function() {
       if (this.noteSearch) return this;
@@ -220,6 +211,22 @@ var jMID = (function(jMID) {
       return new jMIDQueryResult(this._file);
     }
   };
+
+  var noteMethods = ['adjustNoteNumber', 'adjustTime', 'adjustLength', 'setNotNumber', 'setVelocity', 'setChannel'];
+
+  for (var i = 0, _len = noteMethods.length; i < _len; i++) {
+    (function(method) {
+      jMIDQueryResult.prototype[method] = function(amount) {
+        if (!this.noteSearch) return this;
+
+        jMID.Util.forAllNotes(this._results.tracks, function(e, i, track) {
+          e[method](amount);
+        });
+
+        return this;
+      }
+    }(noteMethods[i]));
+  }
 
   jMID.Query = function(midiFile) {
     if (!midiFile && !midiFile instanceof jMID.File) {

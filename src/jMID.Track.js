@@ -1,4 +1,5 @@
 var jMID = (function(jMID) {
+  var _i = 0;
 
   var _remove = function(string) {
     var what, a = Array.prototype.slice.call(arguments, 1), L = a.length, ax;
@@ -14,6 +15,11 @@ var jMID = (function(jMID) {
   jMID.Track = function(options) {
     this.events = [];
     this.notes = [];
+    this.timing = {
+      MicroSPB : 500000,
+      MSPQN : 500,
+      MSPT : 500 / 960
+    };
 
     for (var key in options) {
       if (options.hasOwnProperty(key)) {
@@ -61,11 +67,41 @@ var jMID = (function(jMID) {
     removeNotes : function() {
       return _remove.apply(this, ["notes"].concat(Array.prototype.slice.call(arguments)));
     },
+    removeNote : function(note) {
+      _remove.call(this, "notes", note);
+    },
+    removeEvent : function(event) {
+      var index = this.events.indexOf(event);
+      var nEv = this.events[index];
+
+      _remove.call(this, "events", event);
+
+      if (!nEv) return;
+      this.calculateDelta(nEv);
+    },
     cloneEvents : function() {
       return this.events.slice(0);
     }, 
     cloneNotes : function() {
       return this.notes.slice(0);
+    },
+    hasEvent : function(event) {
+      return this.events.indexOf(event) !== -1;
+    },
+    hasNote : function(note) {
+      return this.notes.indexOf(notes) !== -1;
+    },
+    insertEventAtTime : function(event) {
+      var newIndex = this.positionEvent(event);
+
+      if (this.events[newIndex + 1]) {
+        this.calculateDelta(event, this.events[newIndex + 1]);
+      } else {
+        this.calculateDelta(event);
+      }
+    },
+    insertNoteAtTime : function(note) {
+      this.positionNote(note);
     },
     encode : function() {
       var startByte   = [0x4d, 0x54, 0x72, 0x6b];
@@ -96,25 +132,56 @@ var jMID = (function(jMID) {
 
       // event.deltaTime += ticks;
       event.time += ms;
-      this.events.splice(index, 1);
+      if (this.hasEvent(event)) {
+        this.events.splice(index, 1);
+      }
+
+      var newIndex = this.positionEvent(event);
+
+      this.calculateDelta(nextEvent, event, this.events[newIndex + 1]);
+    },
+    positionEvent : function(event) {
+      if (this.events.length === 0) {
+        this.events.splice(0, 0, event);
+        return 0;
+      }
 
       for (var i = 0, _len = this.events.length; i < _len; i++) {
         var ev = this.events[i];
-        if (event.time >= ev.time) continue;
-
-        this.events.splice(i, 0, event);
-        newIndex = i;
-
+        if (event.time > ev.time) continue;
         break;
       }
+      this.events.splice(i, 0, event);
+      return i;
+    },
+    positionNote : function(note) {
+      var index = this.notes.indexOf(note);
 
-      this.calculateDelta(nextEvent, event, this.events[newIndex + 1]);
+      if (index !== -1) {
+        this.notes.splice(index, 1);
+      }
+
+      if (this.notes.length === 0) {
+        this.notes.splice(0, 0, note);
+        return 0;
+      }
+
+      for (var i = 0, _len = this.notes.length; i < _len; i++) {
+        var ev = this.notes[i];
+        if (note.start > ev.start) continue;
+        break;
+      }
+      this.notes.splice(i, 0, note);
+      return i;
     },
     calculateDelta : function() {
       var args = Array.prototype.slice.call(arguments);
 
       for (var i = 0, _len = args.length; i < _len; i++) {
         var event = args[i];
+
+        if (!event) continue;
+
         var index = this.events.indexOf(event);
         var pEv = this.events[index - 1];
         var nEv = this.events[index + 1];
@@ -143,7 +210,11 @@ var jMID = (function(jMID) {
           noteOns[event.noteNumber] = event;
         } else if (event.subtype === "noteOff") {
           if (event.noteNumber in noteOns) {
-            this.notes.push(new jMID.Note(noteOns[event.noteNumber], event, this));
+            new jMID.Note({
+              noteOn : noteOns[event.noteNumber], 
+              noteOff : event, 
+              track : this
+            });
             delete noteOns[event.noteNumber];
           }
         }

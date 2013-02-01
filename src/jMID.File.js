@@ -16,17 +16,34 @@ var jMID = (function(jMID) {
     };
 
     this.timing = {
-      MicroSPB : 500000
+      MicroSPB : 500000,
+      MSPQN : 500,
+      MSPT : 500 / 960
     };
 
-    this.processMetaEvents();
-    
-    for (var i = this.tracks.length - 1; i >= 0; i--) {
-      this.tracks[i].timing = this.timing;
+    if (!this.header) {
+      this.header = {
+        format : 0,
+        trackCount : 1,
+        ticksPerBeat : 960
+      };
     };
 
-    this.processChannelEventTimes();
-    this.processNotes();
+    if (this.tracks) {
+      this.processMetaEvents();
+      
+      for (var i = this.tracks.length - 1; i >= 0; i--) {
+        this.tracks[i].timing = this.timing;
+      };
+
+      this.processChannelEventTimes();
+      this.processNotes();      
+    } else {
+      this.tracks = [new jMID.Track()];
+      this.header.trackCount = 1;
+      this.calculateBPM();
+    }
+
   };
 
   jMID.File.prototype = {
@@ -51,7 +68,7 @@ var jMID = (function(jMID) {
       this.timing.MSPQN = this.timing.MicroSPB / 1000;
       this.timing.MSPT = this.timing.MSPQN / this.header.ticksPerBeat;
     },
-    processChannelEventTimes : function() {      
+    processChannelEventTimes : function() { 
       for (var i = 0, _len = this.tracks.length; i < _len; i++) {
         this.tracks[i].processChannelEventTimes();
       }
@@ -65,6 +82,12 @@ var jMID = (function(jMID) {
       var microsecondsPerMinute = 60000000;
       this.timing.BPM = (microsecondsPerMinute / this.timing.MicroSPB) *
                         (this.timeSignature.beatValue / 4);
+    },
+    createTrack : function(events) {
+      this.tracks.push(new jMID.Track(events));
+    },
+    removeTrack : function(i) {
+      this.tracks.splice(i, 1);
     },
     getTrack : function(i) {
       return this.tracks[i];

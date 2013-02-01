@@ -4,8 +4,10 @@ var jMID = (function(jMID) {
   ////////////////////////// Private Methods ///////////////////////
   //////////////////////////////////////////////////////////////////
 
-  var _readEvent = function(stream) {
-    var event = new jMID.Event();
+  var _readEvent = function(stream, track) {
+    var event = new jMID.Event({
+      track : track
+    });
     event.set('deltaTime', stream.readVarInt());
     var eventByte = stream.readInt8();
     var types = jMID.EventTypes;
@@ -232,7 +234,7 @@ var jMID = (function(jMID) {
         var chunk = _readChunk(_stream);
         var stream = new jMID.Stream(chunk.data);
         while (!stream.eof()) {
-          tracks[i].pushEvent(_readEvent.call(this, stream));
+          tracks[i].pushEvent(_readEvent.call(this, stream, tracks[i]));
         }
       }
 

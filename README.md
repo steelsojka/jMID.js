@@ -97,6 +97,23 @@ midiFile.encode(); // Returns a binary string or the midi data
 midiFile.base64Encode(); // Return a base64 encoded string of the binary data
 ```
 
+Playback
+---------
+
+You can create timed playback of a decoded MIDI file with the Player class.
+
+```javascript
+var myPlayer = new jMID.Player({
+  file : midiFile
+});
+
+myPlayer.on('event', function(e) {
+  // Do something with the event like send to a synthesizer or something
+});
+
+myPlayer.play();
+```
+
 License
 =========
 

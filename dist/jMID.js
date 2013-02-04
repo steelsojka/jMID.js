@@ -1566,7 +1566,7 @@ var jMID = (function(jMID) {
       return this.nextEvent;
     },
     triggerEvent : function() {
-      this.trigger('event-triggered', this.nextEvent);
+      this.trigger('eventTriggered', this.nextEvent);
       this.queueNext();
     },
     checkEvent : function(time) {
@@ -1621,7 +1621,7 @@ var jMID = (function(jMID) {
       for (var i = 0, _len = this.file.tracks.length; i < _len; i++) {
         this.tracks.push(new EventQueue(this.file.tracks[i].getEvents()));
         this.tracks[i].setQueue(this.currentPosition * 1000);
-        this.tracks[i].on('event-triggered', this.onEventTrigger.bind(this));
+        this.tracks[i].on('eventTriggered', this.onEventTrigger.bind(this));
       }
     },
     onEventTrigger : function(e) {

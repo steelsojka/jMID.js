@@ -1,6 +1,6 @@
 var fs = require('fs');
 var exec = require('child_process').exec;
-var version = 0.1;
+var version = 0.2;
 var CLOSURE_PATH = "build/compiler.jar";
 var jsFiles = ["jMID.Core.js",
                "jMID.Util.js",
@@ -13,12 +13,13 @@ var jsFiles = ["jMID.Core.js",
                "jMID.Encoder.js",
                "jMID.Decoder.js",
                "jMID.Query.js",
-               "jMID.Converter.js"];
+               "jMID.Converter.js",
+               "jMID.Player.js"];
 
 var header = ["/**", 
               " * @FILE_NAME@ v" + version,
               " *",
-              " * A javascript library for reading, manipulating, and writing MIDI files",
+              " * A javascript library for reading, manipulating, writing, and timing MIDI files",
               " * @author Steven Sojka - " + new Date().toLocaleDateString(),
               " *",
               " * MIT Licensed",

@@ -16,6 +16,7 @@
   <script type="text/javascript" src="src/jMID.File.js"></script>
   <script type="text/javascript" src="src/jMID.Stream.js"></script>
   <script type="text/javascript" src="src/jMID.Note.js"></script>
+  <script type="text/javascript" src="src/jMID.Player.js"></script>
   <!--<script type="text/javascript" src="midifile.js"></script>
   <script type="text/javascript" src="stream 2.js"></script>-->
   <style type="text/css">
@@ -44,10 +45,33 @@
       var reader = new FileReader();
 
       reader.onload = function(e) {
+        window.context = new webkitAudioContext();
         window.stream = new jMID.Stream(e.target.result);
         window.decoder = new jMID.Decoder();
         window.file = decoder.decode(stream);
-        draw(file);
+        // draw(file);
+        window.player = new jMID.Player({
+          file : file,
+          context : context
+        });
+
+        window.osc = context.createOscillator();
+        window.gain = context.createGainNode();
+        osc.connect(gain);
+        gain.connect(context.destination);
+        gain.gain.value = 0;
+        osc.start(0);
+        var converter = new jMID.Converter();
+
+
+        player.on('event', function(e) {
+          if (e.subtype === "noteOn") {
+            osc.frequency.value = converter.noteToFrequency(e.noteNumber) + 100;
+            gain.gain.value = e.velocity / 127;
+          } else if (e.subtype === "noteOff") {
+            gain.gain.value = 0;
+          }
+        });
         // window.player = new jMID.Player(decoded);
         // buffer2 = MidiFile(e.target.result);
       };

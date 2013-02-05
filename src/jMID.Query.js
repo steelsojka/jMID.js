@@ -212,7 +212,7 @@ var jMID = (function(jMID) {
     }
   };
 
-  var noteMethods = ['adjustNoteNumber', 'adjustTime', 'adjustLength', 'setNotNumber', 'setVelocity', 'setChannel'];
+  var noteMethods = ['adjustNoteNumber', 'adjustTime', 'adjustLength', 'setNoteNumber', 'setVelocity', 'setChannel'];
 
   for (var i = 0, _len = noteMethods.length; i < _len; i++) {
     (function(method) {

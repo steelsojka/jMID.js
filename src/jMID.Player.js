@@ -44,6 +44,10 @@ var jMID = (function(jMID) {
       this.queueNext();
     },
     checkEvent : function(time) {
+      if (this.queue.length < 1) {
+        this.trigger('queueEmpty');
+      }
+
       if (this.nextEvent === null) return;
 
       if (time >= this.nextEvent.time) {
@@ -64,8 +68,10 @@ var jMID = (function(jMID) {
     this.context         = options.context || new webkitAudioContext();
     this.currentPosition = 0;
     this.startTime       = 0;
+    this.needsRequeue    = true;
     this.tracks          = [];
-    this.bufferSize      = options.bufferSize || 512;
+    this.loop            = false;
+    this.bufferSize      = options.bufferSize || 1024;
     this.scriptNode      = this.context.createScriptProcessor(this.bufferSize, 1, 1);
     this.isPlaying       = false;
 
@@ -96,6 +102,26 @@ var jMID = (function(jMID) {
         this.tracks.push(new EventQueue(this.file.tracks[i].getEvents()));
         this.tracks[i].setQueue(this.currentPosition * 1000);
         this.tracks[i].on('eventTriggered', this.onEventTrigger.bind(this));
+        this.tracks[i].on('queueEmpty', this.onQueueEmpty.bind(this));
+      }
+    },
+    onQueueEmpty : function() {
+      var isEmpty;
+      for (var i = 0, _len = this.tracks.length; i < _len; i++) {
+        if (this.tracks[i].queue.length > 0) {
+          isEmpty = false;
+          break;
+        } else {
+          isEmpty = true;
+        }
+      }
+
+      if (isEmpty) {
+        this.trigger('endOfFile');
+        this.stop();
+        if (this.loop) {
+          this.play();
+        }
       }
     },
     onEventTrigger : function(e) {
@@ -117,17 +143,28 @@ var jMID = (function(jMID) {
       this.queueEvents();
     },
     play : function() {
+      if (this.needsRequeue) {
+        this.queueEvents();
+      }
       this.startContextTime = this.getContextTime();
       this.startPosition = this.currentPosition;
       this.isPlaying = true;
+      this.needsRequeue = false;
+      this.trigger('play');
     },
     pause : function() {
       this.isPlaying = false;
+      this.trigger('pause');
     },
     stop : function() {
       this.currentPosition = 0;
       this.isPlaying = false;
-      this.queueEvents();
+      this.needsRequeue = true;
+      this.trigger('stop');
+      // this.queueEvents();
+    },
+    setLoop : function(bool) {
+      this.loop = bool;
     }
   };
 

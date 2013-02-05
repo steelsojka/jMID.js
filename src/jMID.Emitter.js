@@ -4,9 +4,12 @@ var jMID = (function(jMID) {
 
   jMID.Emitter.prototype = {
     on : function(event, listener) {
+      var events = event.split(" ");
       this.__events = this.__events || {};
-      this.__events[event] = this.__events[event] || [];
-      this.__events[event].push(listener);
+      for (var i = 0, _len = events.length; i < _len; i++) {
+        this.__events[events[i]] = this.__events[events[i]] || [];
+        this.__events[events[i]].push(listener);
+      }
     },
     off : function(event, listener) {
       this.__events = this.__events || {};

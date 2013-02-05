@@ -2,7 +2,7 @@
  * jMID.js v0.2
  *
  * A javascript library for reading, manipulating, writing, and timing MIDI files
- * @author Steven Sojka - Monday, February 04, 2013
+ * @author Steven Sojka - Tuesday, February 05, 2013
  *
  * MIT Licensed
  */
@@ -211,9 +211,12 @@ var jMID = (function(jMID) {
 
   jMID.Emitter.prototype = {
     on : function(event, listener) {
+      var events = event.split(" ");
       this.__events = this.__events || {};
-      this.__events[event] = this.__events[event] || [];
-      this.__events[event].push(listener);
+      for (var i = 0, _len = events.length; i < _len; i++) {
+        this.__events[events[i]] = this.__events[events[i]] || [];
+        this.__events[events[i]].push(listener);
+      }
     },
     off : function(event, listener) {
       this.__events = this.__events || {};
@@ -1391,7 +1394,7 @@ var jMID = (function(jMID) {
     }
   };
 
-  var noteMethods = ['adjustNoteNumber', 'adjustTime', 'adjustLength', 'setNotNumber', 'setVelocity', 'setChannel'];
+  var noteMethods = ['adjustNoteNumber', 'adjustTime', 'adjustLength', 'setNoteNumber', 'setVelocity', 'setChannel'];
 
   for (var i = 0, _len = noteMethods.length; i < _len; i++) {
     (function(method) {
@@ -1570,6 +1573,10 @@ var jMID = (function(jMID) {
       this.queueNext();
     },
     checkEvent : function(time) {
+      if (this.queue.length < 1) {
+        this.trigger('queueEmpty');
+      }
+
       if (this.nextEvent === null) return;
 
       if (time >= this.nextEvent.time) {
@@ -1590,8 +1597,10 @@ var jMID = (function(jMID) {
     this.context         = options.context || new webkitAudioContext();
     this.currentPosition = 0;
     this.startTime       = 0;
+    this.needsRequeue    = true;
     this.tracks          = [];
-    this.bufferSize      = options.bufferSize || 512;
+    this.loop            = false;
+    this.bufferSize      = options.bufferSize || 1024;
     this.scriptNode      = this.context.createScriptProcessor(this.bufferSize, 1, 1);
     this.isPlaying       = false;
 
@@ -1622,6 +1631,26 @@ var jMID = (function(jMID) {
         this.tracks.push(new EventQueue(this.file.tracks[i].getEvents()));
         this.tracks[i].setQueue(this.currentPosition * 1000);
         this.tracks[i].on('eventTriggered', this.onEventTrigger.bind(this));
+        this.tracks[i].on('queueEmpty', this.onQueueEmpty.bind(this));
+      }
+    },
+    onQueueEmpty : function() {
+      var isEmpty;
+      for (var i = 0, _len = this.tracks.length; i < _len; i++) {
+        if (this.tracks[i].queue.length > 0) {
+          isEmpty = false;
+          break;
+        } else {
+          isEmpty = true;
+        }
+      }
+
+      if (isEmpty) {
+        this.trigger('endOfFile');
+        this.stop();
+        if (this.loop) {
+          this.play();
+        }
       }
     },
     onEventTrigger : function(e) {
@@ -1643,17 +1672,28 @@ var jMID = (function(jMID) {
       this.queueEvents();
     },
     play : function() {
+      if (this.needsRequeue) {
+        this.queueEvents();
+      }
       this.startContextTime = this.getContextTime();
       this.startPosition = this.currentPosition;
       this.isPlaying = true;
+      this.needsRequeue = false;
+      this.trigger('play');
     },
     pause : function() {
       this.isPlaying = false;
+      this.trigger('pause');
     },
     stop : function() {
       this.currentPosition = 0;
       this.isPlaying = false;
-      this.queueEvents();
+      this.needsRequeue = true;
+      this.trigger('stop');
+      // this.queueEvents();
+    },
+    setLoop : function(bool) {
+      this.loop = bool;
     }
   };
 

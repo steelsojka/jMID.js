@@ -230,6 +230,10 @@ var jMID = (function(jMID) {
         var time = event.deltaTime * MSPT;
 
         event.set('time', runningTime + time);
+        
+        if (event.subtype === "endOfTrack") {
+          track.duration = event.get('time');
+        }
         runningTime += time;
       }
     }

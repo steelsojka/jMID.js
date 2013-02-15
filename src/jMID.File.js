@@ -72,6 +72,7 @@ var jMID = (function(jMID) {
       for (var i = 0, _len = this.tracks.length; i < _len; i++) {
         this.tracks[i].processChannelEventTimes();
       }
+      this.duration = Math.max.apply(Math, this.tracks.map(function(a) { return a.duration}));
     },
     processNotes : function() {
       for (var i = 0, _len = this.tracks.length; i < _len; i++) {

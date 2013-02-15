@@ -1,6 +1,6 @@
 var fs = require('fs');
 var exec = require('child_process').exec;
-var version = 0.2;
+var version = "0.2.1";
 var CLOSURE_PATH = "build/compiler.jar";
 var jsFiles = ["jMID.Core.js",
                "jMID.Util.js",

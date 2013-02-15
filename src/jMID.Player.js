@@ -26,11 +26,11 @@ var jMID = (function(jMID) {
   };
 
   EventQueue.prototype = {
-    setQueue : function(time) {
+    setQueue : function(time, iterator) {
       this.queue = this.events.filter(function(e, i, array) {
         return e.time >= time;
       });
-      this.nextEvent = this.queue[0] ? this.queue[0] : null;
+      // this.nextEvent = this.queue[0] ? this.queue[0] : null;
     },
     queueNext : function() {
       this.queue.shift();
@@ -58,6 +58,13 @@ var jMID = (function(jMID) {
 
   jMID.Emitter.register(EventQueue);
 
+  var _endOfTrackTimeout = function() {
+    var _this = this;
+    var time = this.file.duration - this.currentPosition * 1000;
+
+    _this.onTrackEndTimeout = setTimeout(_this.onTrackEnd, time);
+  };
+
   //////////////////////////////////////////////////////////
   ////////////////////// jMID Player class /////////////////
   //////////////////////////////////////////////////////////
@@ -70,10 +77,13 @@ var jMID = (function(jMID) {
     this.startTime       = 0;
     this.needsRequeue    = true;
     this.tracks          = [];
+    this.schedules       = [];
     this.loop            = false;
-    this.bufferSize      = options.bufferSize || 1024;
+    this.bufferSize      = options.bufferSize || 512;
     this.scriptNode      = this.context.createScriptProcessor(this.bufferSize, 1, 1);
     this.isPlaying       = false;
+    this.onTrackEnd      = this.onTrackEnd.bind(this);
+    this.endTimeout;
 
     this.scriptNode.connect(this.context.destination);
 
@@ -91,9 +101,9 @@ var jMID = (function(jMID) {
     onAudioProcess : function(e) {
       if (this.isPlaying) {
         this.currentPosition = (this.getContextTime() - this.startContextTime) + this.startPosition;
-        for (var i = 0, _len = this.tracks.length; i < _len; i++) {
-          this.tracks[i].checkEvent(this.currentPosition * 1000); // Convert to milliseconds          
-        }
+        // for (var i = 0, _len = this.tracks.length; i < _len; i++) {
+        //   this.tracks[i].checkEvent(this.currentPosition * 1000); // Convert to milliseconds          
+        // }
       }
     },
     initializeQueues : function() {
@@ -127,6 +137,23 @@ var jMID = (function(jMID) {
     onEventTrigger : function(e) {
       this.trigger('event', e);
     },
+    addSchedule : function(func) {
+      this.schedules.push(func);
+    },
+    removeSchedule : function(func) {
+      this.schedules.splice(this.schedules.indexOf(func), 1);
+    },
+    scheduleEvents : function(iterator) {
+      var track, e;
+      for (var i = 0, _len = this.tracks.length; i < _len; i++) {
+        track = this.tracks[i];
+        track.setQueue(this.currentPosition * 1000);
+        for (var j = 0, _len2 = track.queue.length; j < _len2; j++) {
+          e = track.queue[j]
+          iterator.call(this, e, ((e.time / 1000) - this.currentPosition) + this.getContextTime());
+        }
+      }
+    },
     queueEvents : function() {
       for (var i = 0, _len = this.tracks.length; i < _len; i++) {
         this.tracks[i].setQueue(this.currentPosition * 1000);
@@ -142,29 +169,43 @@ var jMID = (function(jMID) {
       this.currentPosition = time;
       this.queueEvents();
     },
-    play : function() {
-      if (this.needsRequeue) {
-        this.queueEvents();
+    onTrackEnd : function() {
+      this.stop(this.loop);
+      this.trigger('endOfTrack');
+      if (this.loop) {
+        this.trigger('loop');
+        this.play();
       }
+    },
+    setLoop : function(bool) {
+      this.loop = bool;
+    },
+    play : function() {
+      for (var i = 0, _len = this.schedules.length; i < _len; i++) {
+        this.scheduleEvents(this.schedules[i]);
+      }
+
+      _endOfTrackTimeout.call(this);
+      
       this.startContextTime = this.getContextTime();
       this.startPosition = this.currentPosition;
       this.isPlaying = true;
-      this.needsRequeue = false;
       this.trigger('play');
     },
     pause : function() {
       this.isPlaying = false;
       this.trigger('pause');
+      clearTimeout(this.onTrackEndTimeout);
     },
-    stop : function() {
+    stop : function(silent) {
+      clearTimeout(this.onTrackEndTimeout);
       this.currentPosition = 0;
       this.isPlaying = false;
       this.needsRequeue = true;
-      this.trigger('stop');
+      if (!silent) {
+        this.trigger('stop');
+      }
       // this.queueEvents();
-    },
-    setLoop : function(bool) {
-      this.loop = bool;
     }
   };
 

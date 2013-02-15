@@ -144,15 +144,30 @@ var jMID = (function(jMID) {
       this.schedules.splice(this.schedules.indexOf(func), 1);
     },
     scheduleEvents : function(iterator) {
-      var track, e;
-      for (var i = 0, _len = this.tracks.length; i < _len; i++) {
-        track = this.tracks[i];
-        track.setQueue(this.currentPosition * 1000);
-        for (var j = 0, _len2 = track.queue.length; j < _len2; j++) {
-          e = track.queue[j]
-          iterator.call(this, e, ((e.time / 1000) - this.currentPosition) + this.getContextTime());
+      var track;
+      var _this = this;
+      jMID.Util.asyncLoop({
+        length : this.tracks.length,
+        func : function(_next, i) {
+          track = _this.tracks[i];
+          track.setQueue(_this.currentPosition * 1000);
+          jMID.Util.asyncLoop({
+            length : track.queue.length,
+            func : function(next, j) {
+              var e = track.queue[j];
+              iterator.call(_this, e, ((e.time / 1000) - _this.currentPosition) + _this.getContextTime());
+              next();
+            },
+            callback : function() {
+
+            }
+          });
+          _next();
+        },
+        callback : function() {
+
         }
-      }
+      });
     },
     queueEvents : function() {
       for (var i = 0, _len = this.tracks.length; i < _len; i++) {

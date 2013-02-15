@@ -72,6 +72,14 @@ var jMID = (function(jMID) {
       }
       return bytes;
     },
+    asyncLoop : function(o) {
+      var i = -1;
+      var next = function() {
+        if (++i === o.length) { o.callback(); return; }
+        o.func(next, i);
+      };
+      next();
+    },
     getType : function(type) {
       var types = jMID.SubEventTypes;
 

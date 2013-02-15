@@ -100,16 +100,35 @@ midiFile.base64Encode(); // Return a base64 encoded string of the binary data
 Playback
 ---------
 
-You can create timed playback of a decoded MIDI file with the Player class.
+You can create timed playback of a decoded MIDI file with the Player class. Since the Web Audio API
+allows precision timing, the best way to interact with the player is by scheduling events.
 
 ```javascript
 var myPlayer = new jMID.Player({
   file : midiFile
 });
 
-myPlayer.on('event', function(e) {
-  // Do something with the event like send to a synthesizer or something
+/**
+ * Pass in an iterator that gets added to the players schedule array.
+ * When the play method is called, these iterators get called for each event
+ * in the file with a calculated time when they will execute in context to 
+ * the current AudioContext's current time
+ */
+
+myPlayer.addSchedule(function(event, time) { 
+  if (event.subtype === "noteOn") {
+    mySoundModule.triggerAtTime(time);
+  }
 });
+
+/** 
+ * If the MIDI event is 2 seconds into the file and the current AudioContext's
+ * current time is 20 seconds, the time sent to the iterator for that event
+ * is 22 seconds
+ */
+
+
+
 
 myPlayer.play();
 ```

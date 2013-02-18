@@ -121,13 +121,13 @@ myPlayer.addSchedule(function(event, time) {
   }
 });
 
+myPlayer.setTempo(150); // Change the tempo.  This is best done when the player is stopped.
+
 /** 
  * If the MIDI event is 2 seconds into the file and the current AudioContext's
  * current time is 20 seconds, the time sent to the iterator for that event
  * is 22 seconds
  */
-
-
 
 
 myPlayer.play();

@@ -1,5 +1,7 @@
 var jMID = (function(jMID) {
 
+  var _x = 0;
+
   /**
    * This module manages the timing and playback of a specific MIDI file.
    * Pass in a webkitAudioContext object if you have one or this will create one for you.
@@ -84,6 +86,7 @@ var jMID = (function(jMID) {
     this.isPlaying       = false;
     this.onTrackEnd      = this.onTrackEnd.bind(this);
     this.endTimeout;
+    this.timer = new jMID.AudioTimer(this.context);
 
     this.scriptNode.connect(this.context.destination);
 
@@ -146,27 +149,16 @@ var jMID = (function(jMID) {
     scheduleEvents : function(iterator) {
       var track;
       var _this = this;
-      jMID.Util.asyncLoop({
-        length : this.tracks.length,
-        func : function(_next, i) {
-          track = _this.tracks[i];
-          track.setQueue(_this.currentPosition * 1000);
-          jMID.Util.asyncLoop({
-            length : track.queue.length,
-            func : function(next, j) {
-              var e = track.queue[j];
-              iterator.call(_this, e, ((e.time / 1000) - _this.currentPosition) + _this.getContextTime());
-              next();
-            },
-            callback : function() {
 
-            }
-          });
-          _next();
-        },
-        callback : function() {
-
-        }
+      this.tracks.forEach(function(track) {
+        track.setQueue(_this.currentPosition * 1000);
+        track.queue.every(function(e) {
+          setTimeout(function() {
+            if (!_this.isPlaying) return;
+            iterator.call(_this, e, ((e.time / 1000) - _this.currentPosition) + _this.getContextTime());
+          }, 0);
+          return _this.isPlaying;
+        });
       });
     },
     queueEvents : function() {
@@ -182,7 +174,6 @@ var jMID = (function(jMID) {
     },
     gotoPosition : function(time) {
       this.currentPosition = time;
-      this.queueEvents();
     },
     onTrackEnd : function() {
       this.stop(this.loop);
@@ -192,35 +183,45 @@ var jMID = (function(jMID) {
         this.play();
       }
     },
+    setTempo : function(tempo) {
+      this.file.setTempo(tempo);
+      
+      if (this.isPlaying) {
+        this.pause();
+        this.play()
+      }
+    },
     setLoop : function(bool) {
       this.loop = bool;
     },
     play : function() {
+      if (this.isPlaying) return;
+      this.isPlaying = true;
+
       for (var i = 0, _len = this.schedules.length; i < _len; i++) {
         this.scheduleEvents(this.schedules[i]);
       }
+      this.endOfTrackTime = (this.file.duration / 1000 - this.currentPosition) + this.getContextTime();
 
-      _endOfTrackTimeout.call(this);
+      this.timer.callbackAtTime(this.endOfTrackTime, this.onTrackEnd, this);
       
       this.startContextTime = this.getContextTime();
       this.startPosition = this.currentPosition;
-      this.isPlaying = true;
       this.trigger('play');
     },
     pause : function() {
       this.isPlaying = false;
       this.trigger('pause');
-      clearTimeout(this.onTrackEndTimeout);
+      this.timer.removeCallbackAtTime(this.onTrackEnd, this.endOfTrackTime);
     },
     stop : function(silent) {
-      clearTimeout(this.onTrackEndTimeout);
+      this.timer.removeCallbackAtTime(this.onTrackEnd, this.endOfTrackTime);
       this.currentPosition = 0;
       this.isPlaying = false;
       this.needsRequeue = true;
       if (!silent) {
         this.trigger('stop');
       }
-      // this.queueEvents();
     }
   };
 

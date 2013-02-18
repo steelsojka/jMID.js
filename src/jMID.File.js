@@ -90,6 +90,13 @@ var jMID = (function(jMID) {
     removeTrack : function(i) {
       this.tracks.splice(i, 1);
     },
+    setTempo : function(tempo) {
+      this.timing.BPM = tempo;
+      this.timing.MSPQN = (1 / tempo) * 60000;
+      this.timing.MicroSPB = this.timing.MSPQN * 1000;
+      this.timing.MSPT = this.timing.MSPQN / this.header.ticksPerBeat;
+      this.processChannelEventTimes();
+    },
     getTrack : function(i) {
       return this.tracks[i];
     },

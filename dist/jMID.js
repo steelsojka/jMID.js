@@ -2,7 +2,7 @@
  * jMID.js v0.2.1
  *
  * A javascript library for reading, manipulating, writing, and timing MIDI files
- * @author Steven Sojka - Friday, February 15, 2013
+ * @author Steven Sojka - Monday, February 18, 2013
  *
  * MIT Licensed
  */
@@ -118,6 +118,14 @@ var jMID = (function(jMID) {
         }
       }
       return bytes;
+    },
+    asyncLoop : function(o) {
+      var i = -1;
+      var next = function() {
+        if (++i === o.length) { o.callback(); return; }
+        o.func(next, i);
+      };
+      next();
     },
     getType : function(type) {
       var types = jMID.SubEventTypes;
@@ -701,6 +709,13 @@ var jMID = (function(jMID) {
     removeTrack : function(i) {
       this.tracks.splice(i, 1);
     },
+    setTempo : function(tempo) {
+      this.timing.BPM = tempo;
+      this.timing.MSPQN = (1 / tempo) * 60000;
+      this.timing.MicroSPB = this.timing.MSPQN * 1000;
+      this.timing.MSPT = this.timing.MSPQN / this.header.ticksPerBeat;
+      this.processChannelEventTimes();
+    },
     getTrack : function(i) {
       return this.tracks[i];
     },
@@ -933,6 +948,11 @@ var jMID = (function(jMID) {
   return jMID;
 
 }(jMID || {}));var jMID = (function(jMID) {
+
+  /**
+   * TODO: There is an unknown error happening when MIDI file data is brought in
+   * through an AJAX call instead of through the File API. Fix it.
+   */
 
   //////////////////////////////////////////////////////////////////
   ////////////////////////// Private Methods ///////////////////////
@@ -1534,6 +1554,8 @@ var jMID = (function(jMID) {
 }(jMID || {}));
 var jMID = (function(jMID) {
 
+  var _x = 0;
+
   /**
    * This module manages the timing and playback of a specific MIDI file.
    * Pass in a webkitAudioContext object if you have one or this will create one for you.
@@ -1618,6 +1640,7 @@ var jMID = (function(jMID) {
     this.isPlaying       = false;
     this.onTrackEnd      = this.onTrackEnd.bind(this);
     this.endTimeout;
+    this.timer = new jMID.AudioTimer(this.context);
 
     this.scriptNode.connect(this.context.destination);
 
@@ -1678,15 +1701,19 @@ var jMID = (function(jMID) {
       this.schedules.splice(this.schedules.indexOf(func), 1);
     },
     scheduleEvents : function(iterator) {
-      var track, e;
-      for (var i = 0, _len = this.tracks.length; i < _len; i++) {
-        track = this.tracks[i];
-        track.setQueue(this.currentPosition * 1000);
-        for (var j = 0, _len2 = track.queue.length; j < _len2; j++) {
-          e = track.queue[j]
-          iterator.call(this, e, ((e.time / 1000) - this.currentPosition) + this.getContextTime());
-        }
-      }
+      var track;
+      var _this = this;
+
+      this.tracks.forEach(function(track) {
+        track.setQueue(_this.currentPosition * 1000);
+        track.queue.every(function(e) {
+          setTimeout(function() {
+            if (!_this.isPlaying) return;
+            iterator.call(_this, e, ((e.time / 1000) - _this.currentPosition) + _this.getContextTime());
+          }, 0);
+          return _this.isPlaying;
+        });
+      });
     },
     queueEvents : function() {
       for (var i = 0, _len = this.tracks.length; i < _len; i++) {
@@ -1701,7 +1728,6 @@ var jMID = (function(jMID) {
     },
     gotoPosition : function(time) {
       this.currentPosition = time;
-      this.queueEvents();
     },
     onTrackEnd : function() {
       this.stop(this.loop);
@@ -1711,35 +1737,45 @@ var jMID = (function(jMID) {
         this.play();
       }
     },
+    setTempo : function(tempo) {
+      this.file.setTempo(tempo);
+      
+      if (this.isPlaying) {
+        this.pause();
+        this.play()
+      }
+    },
     setLoop : function(bool) {
       this.loop = bool;
     },
     play : function() {
+      if (this.isPlaying) return;
+      this.isPlaying = true;
+
       for (var i = 0, _len = this.schedules.length; i < _len; i++) {
         this.scheduleEvents(this.schedules[i]);
       }
+      this.endOfTrackTime = (this.file.duration / 1000 - this.currentPosition) + this.getContextTime();
 
-      _endOfTrackTimeout.call(this);
+      this.timer.callbackAtTime(this.endOfTrackTime, this.onTrackEnd, this);
       
       this.startContextTime = this.getContextTime();
       this.startPosition = this.currentPosition;
-      this.isPlaying = true;
       this.trigger('play');
     },
     pause : function() {
       this.isPlaying = false;
       this.trigger('pause');
-      clearTimeout(this.onTrackEndTimeout);
+      this.timer.removeCallbackAtTime(this.onTrackEnd, this.endOfTrackTime);
     },
     stop : function(silent) {
-      clearTimeout(this.onTrackEndTimeout);
+      this.timer.removeCallbackAtTime(this.onTrackEnd, this.endOfTrackTime);
       this.currentPosition = 0;
       this.isPlaying = false;
       this.needsRequeue = true;
       if (!silent) {
         this.trigger('stop');
       }
-      // this.queueEvents();
     }
   };
 

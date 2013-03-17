@@ -34,6 +34,10 @@ var jMID = (function(jMID) {
     return temp;
   };
 
+  var _isNumber = function(num) {
+    return typeof value == 'number' || toString.call(value) == numberClass;
+  };
+
 
 
   var _search = function(query, noteSearch) {
@@ -63,6 +67,9 @@ var jMID = (function(jMID) {
             var condition = conditions[x].split(operator);
             var key = condition[0];
             var value = condition[1];
+            if (_isNumber(event[key])) {
+              value = parseInt(value, 10);
+            }
 
             switch(operator) {
               case ":" : isValid = event[key] == value; break;

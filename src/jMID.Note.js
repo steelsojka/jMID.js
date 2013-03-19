@@ -15,7 +15,8 @@ var jMID = (function(jMID) {
         time       : options.time || 0,
         velocity   : options.velocity || 90,
         noteNumber : options.noteNumber || 32,
-        track      : options.track || null
+        track      : options.track || null,
+        channel    : options.channel || 1
       });
     }
 
@@ -29,15 +30,12 @@ var jMID = (function(jMID) {
         time       : options.length ? this.noteOn.time + options.length : this.noteOn.time + 100,
         velocity   : this.noteOn.velocity,
         noteNumber : this.noteOn.noteNumber,
-        track      : options.track || null
+        track      : options.track || null,
+        channel    : options.channel || 0
       });
     }
       
-    this.end        = this.noteOff.time;
-    this.start      = this.noteOn.time;
-    this.velocity   = this.noteOn.velocity;
-    this.noteNumber = this.noteOn.noteNumber;
-    this.length     = this.noteOff.time - this.noteOn.time;
+    _resetProperties.call(this);
 
     if (options.track) {
       this.track = options.track;
@@ -53,19 +51,30 @@ var jMID = (function(jMID) {
     }
   };
 
+  var _resetProperties = function() {
+    this.end        = this.noteOff.time;
+    this.start      = this.noteOn.time;
+    this.velocity   = this.noteOn.velocity;
+    this.noteNumber = this.noteOn.noteNumber;
+    this.length     = this.noteOff.time - this.noteOn.time;
+  };
+
   jMID.Note.prototype = {
     adjustTime : function(amount) {
       this.track.adjustEventTime(this.noteOn, amount);
       this.track.adjustEventTime(this.noteOff, amount);
       this.track.positionNote(this);
+      _resetProperties.call(this);
     },
     adjustLength : function(amount) {
       this.track.adjustEventTime(this.noteOff, amount);
-      this.length = this.noteOff.time - this.noteOn.time;
-      this.end = this.noteOff.time;
+      _resetProperties.call(this);
     },
     adjustNoteNumber : function(amount) {
       this.setNoteNumber(this.noteNumber + amount);
+    },
+    setTime : function(time) {
+      this.adjustTime(time - this.start);
     },
     setNoteNumber : function(noteNumber) {
       this.noteOn.noteNumber  = noteNumber;

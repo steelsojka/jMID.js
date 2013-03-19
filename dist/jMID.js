@@ -2,7 +2,7 @@
  * jMID.js v0.2.1
  *
  * A javascript library for reading, manipulating, writing, and timing MIDI files
- * @author Steven Sojka - Monday, February 18, 2013
+ * @author Steven Sojka - Thursday, March 07, 2013
  *
  * MIT Licensed
  */
@@ -771,11 +771,7 @@ var jMID = (function(jMID) {
       });
     }
       
-    this.end        = this.noteOff.time;
-    this.start      = this.noteOn.time;
-    this.velocity   = this.noteOn.velocity;
-    this.noteNumber = this.noteOn.noteNumber;
-    this.length     = this.noteOff.time - this.noteOn.time;
+    _resetProperties.call(this);
 
     if (options.track) {
       this.track = options.track;
@@ -791,19 +787,30 @@ var jMID = (function(jMID) {
     }
   };
 
+  var _resetProperties = function() {
+    this.end        = this.noteOff.time;
+    this.start      = this.noteOn.time;
+    this.velocity   = this.noteOn.velocity;
+    this.noteNumber = this.noteOn.noteNumber;
+    this.length     = this.noteOff.time - this.noteOn.time;
+  };
+
   jMID.Note.prototype = {
     adjustTime : function(amount) {
       this.track.adjustEventTime(this.noteOn, amount);
       this.track.adjustEventTime(this.noteOff, amount);
       this.track.positionNote(this);
+      _resetProperties.call(this);
     },
     adjustLength : function(amount) {
       this.track.adjustEventTime(this.noteOff, amount);
-      this.length = this.noteOff.time - this.noteOn.time;
-      this.end = this.noteOff.time;
+      _resetProperties.call(this);
     },
     adjustNoteNumber : function(amount) {
       this.setNoteNumber(this.noteNumber + amount);
+    },
+    setTime : function(time) {
+      this.adjustTime(time - this.start);
     },
     setNoteNumber : function(noteNumber) {
       this.noteOn.noteNumber  = noteNumber;
@@ -1466,29 +1473,42 @@ var jMID = (function(jMID) {
     return value >= min && value <= max;
   };
   var conf = {
-    NOTES : ['C ','C#','D ','D#','E ','F ','F#','G ','G#','A ','A#','B '],
+    NOTES : ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],
     BASE_A4 : 440
   };
+
+  var _generateNoteTable = function() {
+    var x = 0, i = 0;
+    var _arr = [];
+    var _nLen = conf.NOTES.length
+    while (x < 128) {
+      _arr[x] = conf.NOTES[i] + Math.floor(x / 12);
+      i++;
+      if (i >= _nLen) i = 0;
+      x++;
+    }
+    return _arr;
+  }
 
   //////////////////////////////////////////////////////
   /////////////////// jMID Converter Class /////////////
   //////////////////////////////////////////////////////
 
-  jMID.Converter = function() {
-    this.setType(jMID.Converter.Types.NOTE_TO_FREQUENCY);
-  };
-
-  jMID.Converter.prototype = {
+  jMID.Converter = {
+    _type : 0,
     noteToFrequency : function(note) {
-      if (_inBounds(0, 119, note)) {
+      if (_inBounds(0, 127, note)) {
         return conf.BASE_A4 * Math.pow(2, (note - 69) / 12);
       } else {
         return -1;
       }
     },
     noteToName : function(note) {
-      if (_inBounds(0, 119, note)) {
-        return (conf.NOTES[note % 12] + (Math.round(note / 12)).toString()).replace(/\s+/g, '');
+      if (parseInt(note, 10) === NaN) return note;
+      
+      if (_inBounds(0, 127, note)) {
+        return this.Notes[note];
+        // return (conf.NOTES[note % 12] + (Math.round(note / 12)).toString()).replace(/\s+/g, '');
       } else {
         return '---';
       }
@@ -1496,30 +1516,31 @@ var jMID = (function(jMID) {
     frequencyToNote : function(freq) {
       return Math.round(12 * (Math.log(freq / conf.BASE_A4) / Math.log(2))) + 69;
     },
-    nameToNote : function(string) { 
-      var c, i, s, _len;
+    nameToNote : function(string) {
+      return this.Notes.indexOf(string);
+      // var c, i, s, _len;
 
-      if (string.length === 2) {
-        s = string[0] + " " + string[1];
-      } else if (string.length > 2) {
-        return -1;
-      }
-      s.toUpperCase();
-      c = -1;
-      for (i = 0, _len = conf.NOTES.length; i < _len; i++) {
-        if (conf.NOTES[i] === s[0] + s[1]) {
-          c = i;
-          break;
-        }
-      }
-      try {
-        i = parseInt(s[2], 10);
-        return i * 12 + c;
-      } catch(err) {
-        return -1;
-      }
+      // if (string.length === 2) {
+      //   s = string[0] + " " + string[1];
+      // } else if (string.length > 2) {
+      //   return -1;
+      // }
+      // s.toUpperCase();
+      // c = -1;
+      // for (i = 0, _len = conf.NOTES.length; i < _len; i++) {
+      //   if (conf.NOTES[i] === s[0] + s[1]) {
+      //     c = i;
+      //     break;
+      //   }
+      // }
+      // try {
+      //   i = parseInt(s[2], 10);
+      //   return i * 12 + c;
+      // } catch(err) {
+      //   return -1;
+      // }
 
-      if (c < 0) return -1;
+      // if (c < 0) return -1;
     },
     convert : function(value) {
       switch (this._type) {
@@ -1538,16 +1559,14 @@ var jMID = (function(jMID) {
   //////////////////// Static variables ////////////////////
   //////////////////////////////////////////////////////////
 
+  jMID.Converter.Notes = _generateNoteTable();
+
   jMID.Converter.Types = {
     NOTE_TO_FREQUENCY : 0,
     NOTE_TO_NAME      : 1,
     FREQUENCY_TO_NOTE : 2,
     NAME_TO_NOTE      : 3
   };
-
-  if (jMID.Emitter) {
-    jMID.Emitter.register(jMID.Converter);
-  }
 
   return jMID;
 

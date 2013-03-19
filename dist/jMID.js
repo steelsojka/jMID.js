@@ -2,7 +2,11 @@
  * jMID.js v0.2.1
  *
  * A javascript library for reading, manipulating, writing, and timing MIDI files
+<<<<<<< HEAD
  * @author Steven Sojka - Thursday, March 07, 2013
+=======
+ * @author Steven Sojka - Sunday, March 17, 2013
+>>>>>>> 65b5b1e484410ba92b5f8e9f0ef5cc2fda801f97
  *
  * MIT Licensed
  */
@@ -1248,6 +1252,10 @@ var jMID = (function(jMID) {
     return temp;
   };
 
+  var _isNumber = function(num) {
+    return typeof value == 'number' || toString.call(value) == numberClass;
+  };
+
 
 
   var _search = function(query, noteSearch) {
@@ -1277,6 +1285,9 @@ var jMID = (function(jMID) {
             var condition = conditions[x].split(operator);
             var key = condition[0];
             var value = condition[1];
+            if (_isNumber(event[key])) {
+              value = parseInt(value, 10);
+            }
 
             switch(operator) {
               case ":" : isValid = event[key] == value; break;

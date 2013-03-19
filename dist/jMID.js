@@ -2,11 +2,7 @@
  * jMID.js v0.2.1
  *
  * A javascript library for reading, manipulating, writing, and timing MIDI files
-<<<<<<< HEAD
- * @author Steven Sojka - Thursday, March 07, 2013
-=======
- * @author Steven Sojka - Sunday, March 17, 2013
->>>>>>> 65b5b1e484410ba92b5f8e9f0ef5cc2fda801f97
+ * @author Steven Sojka - Tuesday, March 19, 2013
  *
  * MIT Licensed
  */
@@ -757,7 +753,8 @@ var jMID = (function(jMID) {
         time       : options.time || 0,
         velocity   : options.velocity || 90,
         noteNumber : options.noteNumber || 32,
-        track      : options.track || null
+        track      : options.track || null,
+        channel    : options.channel || 1
       });
     }
 
@@ -771,7 +768,8 @@ var jMID = (function(jMID) {
         time       : options.length ? this.noteOn.time + options.length : this.noteOn.time + 100,
         velocity   : this.noteOn.velocity,
         noteNumber : this.noteOn.noteNumber,
-        track      : options.track || null
+        track      : options.track || null,
+        channel    : options.channel || 0
       });
     }
       
